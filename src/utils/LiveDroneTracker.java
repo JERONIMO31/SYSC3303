@@ -22,8 +22,13 @@ public class LiveDroneTracker {
     }
 
     public synchronized DroneInfo getReadyDrone() {
-        if (this.readyDrones.isEmpty()) {
-            return null;
+        while (this.readyDrones.isEmpty()) {
+            try {
+                wait(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
         int droneId = this.readyDrones.iterator().next();
         this.readyDrones.remove(droneId);
@@ -36,6 +41,7 @@ public class LiveDroneTracker {
             this.busyDrones.remove(droneId);
             this.readyDrones.add(droneId);
             this.droneMap.get(droneId).refillAgent();
+            notifyAll();
         }
     }
 

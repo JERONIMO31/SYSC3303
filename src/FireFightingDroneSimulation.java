@@ -10,10 +10,6 @@ public class FireFightingDroneSimulation {
     Scheduler assembler;
     FireIncidient[] technicians;
 
-
-    /**
-     * Initiates the assembly line.
-     */
     public FireFightingDroneSimulation() {
         Component[] components = Component.values();
         AssemblyTable table = new AssemblyTable();
@@ -25,9 +21,6 @@ public class FireFightingDroneSimulation {
         System.out.println("Assembly Line started.");
     }
 
-    /**
-     * Main method to start the simulation.
-     */
     public static void main(String[] args){
         FireFightingDroneSimulation Scheduler = new FireFightingDroneSimulation();
         Thread assemblerThread = new Thread(Scheduler.assembler);

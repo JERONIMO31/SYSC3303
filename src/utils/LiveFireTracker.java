@@ -19,6 +19,11 @@ public class LiveFireTracker
     }
         
     public synchronized FireInfo getNextFireInfo(){
+        for (FireInfo fire : this.firesBeingFought.values()) {
+            if (!fire.hasDroneAssigned() && !fire.isExtinguished()) {
+                return fire;
+            }
+        }
         if (this.fireQueue.isEmpty()) {
             return null;
         }
@@ -32,5 +37,9 @@ public class LiveFireTracker
         if (fire != null) {
             this.deadFires.add(fire);
         }
+    }
+
+    public synchronized int getActiveFireCount() {
+        return this.firesBeingFought.size() + this.fireQueue.size();
     }
 }

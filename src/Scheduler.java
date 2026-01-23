@@ -1,49 +1,41 @@
 import utils.LiveDroneTracker;
 import utils.LiveFireTracker;
+import utils.DroneInfo;
+import utils.FireInfo;
 
-/**
- * Assembler.java - This class represents the assembler in the
- * Autonomous Drone Assembly Line simulation.
- */
 public class Scheduler implements Runnable
 {
 
-    LiveFireTracker fireTracker;
-    LiveDroneTracker droneTracker;
+    private LiveFireTracker fireTracker;
+    private LiveDroneTracker droneTracker;
+    private volatile boolean endCondition;
 
-    /**
-     * Initiates the assembly table.
-     * 
-     * @param t The assembly table used by the assembler.
-     */
-    public Scheduler(AssemblyTable t) {
-        table = t;
-        System.out.println("Assembler started.");
+    public Scheduler(LiveDroneTracker liveDroneTracker, LiveFireTracker liveFireTracker, boolean endCondition) {
+        this.droneTracker = liveDroneTracker;
+        this.fireTracker = liveFireTracker;
+        this.endCondition = endCondition;
     }
 
-    /**
-     * The main run method for the assembler thread.
-     */
     public void run() {
-        Random random = new Random();
-        int i;
-        while (table.getNumCompletedDrones() < 20) {
-            i = random.nextInt(3);
-            switch (i) {
-                case 0:
-                    table.put(Component.CONTROL_FIRMWARE, Component.FRAME);
-                    System.out.println("Assembler put CONTROL_FIRMWARE and FRAME on the table.");
-                    break;
-                case 1:
-                    table.put(Component.FRAME, Component.PROPULSION_UNIT);
-                    System.out.println("Assembler put FRAME and PROPULSION_UNIT on the table.");
-                    break;
-                case 2:
-                    table.put(Component.PROPULSION_UNIT, Component.CONTROL_FIRMWARE);
-                    System.out.println("Assembler put PROPULSION_UNIT and CONTROL_FIRMWARE on the table.");
-                    break;
+        while (!this.endCondition) {
+            FireInfo next_fire = fireTracker.getNextFireInfo();
+            if (next_fire != null) {
+                System.out.println("Scheduler found unassigned fire at " + next_fire.getLocationKey() + ".");
+                DroneInfo ready_drone = null;
+                while (ready_drone == null) {
+                    ready_drone = droneTracker.getReadyDrone();
+                }
+                ready_drone.assignToFire(next_fire);
+                next_fire.assignDrone(ready_drone.droneId);
+                System.out.println("Scheduler assigned Drone " + ready_drone.droneId + " to fire at " + next_fire.getLocationKey() + ".");
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
+
         }
-        System.out.println("AssemblyLine has completed 20 drones, terminating Assembler.");
     }
 }

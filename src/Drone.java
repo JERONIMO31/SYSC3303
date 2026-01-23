@@ -21,10 +21,15 @@ public class Drone implements Runnable
                 droneInfo.waitForWork(1000);
                 if (!droneInfo.isAvailable()) {
                     droneInfo.travelToFire();
-                    
+                    System.out.println("Drone " + droneInfo.droneId + " arrived at fire at " + droneInfo.getLocationKey() + ".");
                     int deployed = droneInfo.deployAgent();
                     System.out.println("Drone " + droneInfo.droneId + " deployed " + deployed + "L of agent to fire at " + droneInfo.getLocationKey() + ".");
-
+                    droneInfo.travelHome();
+                    System.out.println("Drone " + droneInfo.droneId + " returned home from fire at " + droneInfo.getLocationKey() + ".");
+                    droneInfo.refillAgent();
+                    System.out.println("Drone " + droneInfo.droneId + " refilled agent.");
+                    droneTracker.markDroneAsReady(droneInfo.droneId);
+                    System.out.println("Drone " + droneInfo.droneId + " is now ready for new assignments.");
                 }
                 
             } catch (InterruptedException e) {
