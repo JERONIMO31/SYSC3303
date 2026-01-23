@@ -1,0 +1,35 @@
+
+import utils.DroneInfo;
+import utils.LiveDroneTracker;
+
+
+public class Drone implements Runnable
+{
+    private LiveDroneTracker droneTracker;
+    private DroneInfo droneInfo;
+    private volatile boolean endCondition;
+
+    public Drone(DroneInfo info, LiveDroneTracker tracker, boolean endCondition) {
+        this.droneInfo = info;
+        this.droneTracker = tracker;
+        this.endCondition = endCondition;
+    }
+
+    public void run() {
+        while(!endCondition) {
+            try {
+                droneInfo.waitForWork(1000);
+                if (!droneInfo.isAvailable()) {
+                    droneInfo.travelToFire();
+                    
+                    int deployed = droneInfo.deployAgent();
+                    System.out.println("Drone " + droneInfo.droneId + " deployed " + deployed + "L of agent to fire at " + droneInfo.getLocationKey() + ".");
+
+                }
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+}
