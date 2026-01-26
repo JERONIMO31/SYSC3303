@@ -1,7 +1,6 @@
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import javax.swing.event.DocumentEvent.EventType;
 
 import java.time.LocalTime;
 
@@ -9,7 +8,6 @@ import utils.EventInfo;
 import utils.FireInfo;
 import utils.Intensity;
 import utils.LiveFireTracker;
-import utils.EventInfo;
 import utils.Event_Type;
 import utils.Zone;
 import java.io.BufferedReader;
