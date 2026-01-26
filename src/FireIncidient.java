@@ -1,15 +1,25 @@
 import java.util.HashMap;
 import java.util.TreeMap;
+
+import javax.swing.event.DocumentEvent.EventType;
+
 import java.time.LocalTime;
+
+import utils.EventInfo;
 import utils.FireInfo;
 import utils.Intensity;
 import utils.LiveFireTracker;
+import utils.EventInfo;
+import utils.Event_Type;
 import utils.Zone;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class FireIncidient implements Runnable {
 
     private LiveFireTracker fireTracker;
     private TreeMap<LocalTime, FireInfo> fireMap;
+    private TreeMap<LocalTime, EventInfo> eventMap;
     private HashMap<Integer, Zone> zoneMap;
     private volatile boolean endCondition;
     private final LocalTime startTime;
@@ -22,6 +32,23 @@ public class FireIncidient implements Runnable {
         // This is a placeholder for file reading logic
         this.fireMap = new TreeMap<>();
         this.zoneMap = new HashMap<>();
+
+        String eventsFile = "src\\" + incidentFilePath;
+        BufferedReader reader = null;
+        String line = "";
+        try{
+            reader = new BufferedReader(new FileReader(eventsFile));
+            reader.readLine();
+            while((line = reader.readLine())!= null){
+                String[] row = line.split(",");
+                Event_Type t = Event_Type.valueOf(row[2].trim());
+                Intensity i = Intensity.valueOf(row[3].trim());
+                EventInfo e = new EventInfo(LocalTime.parse(row[0]),Integer.valueOf(row[1]), t, i);
+                eventMap.put(LocalTime.parse(row[0]), e);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
 
         zoneMap.put(1, new Zone(1, 0, 50, 0, 50));
         zoneMap.put(2, new Zone(2, 51, 100, 0, 50));
