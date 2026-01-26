@@ -31,16 +31,17 @@ public class FireIncidient implements Runnable {
         // Add code to read zone and incident files and populate fireTracker
         // This is a placeholder for file reading logic
         this.fireMap = new TreeMap<>();
+        this.eventMap = new TreeMap<>();
         this.zoneMap = new HashMap<>();
 
         String eventsFile = "src\\" + incidentFilePath;
-        BufferedReader reader = null;
-        String line = "";
+        BufferedReader readerE = null;
+        String Eline = "";
         try{
-            reader = new BufferedReader(new FileReader(eventsFile));
-            reader.readLine();
-            while((line = reader.readLine())!= null){
-                String[] row = line.split(",");
+            readerE = new BufferedReader(new FileReader(eventsFile));
+            readerE.readLine();
+            while((Eline = readerE.readLine())!= null){
+                String[] row = Eline.split(",");
                 Event_Type t = Event_Type.valueOf(row[2].trim());
                 Intensity i = Intensity.valueOf(row[3].trim());
                 EventInfo e = new EventInfo(LocalTime.parse(row[0]),Integer.valueOf(row[1]), t, i);
@@ -50,10 +51,37 @@ public class FireIncidient implements Runnable {
             e.printStackTrace();
         }
 
-        zoneMap.put(1, new Zone(1, 0, 50, 0, 50));
-        zoneMap.put(2, new Zone(2, 51, 100, 0, 50));
-        zoneMap.put(3, new Zone(3, 0, 50, 51, 100));
-        zoneMap.put(4, new Zone(4, 51, 100, 51, 100));
+        String zoneFile = "src\\" + zoneFilePath;
+        BufferedReader readerZ = null;
+        String Zline = "";
+        try{
+            readerZ = new BufferedReader(new FileReader(zoneFile));
+            readerZ.readLine();
+            while((Zline = readerZ.readLine())!= null){
+                String[] row = Zline.split(",");
+                int zoneID = Integer.parseInt(row[0]);
+
+                String[] start = row[1].replace("(", "").replace(")", "").split(";");
+                String[] end = row[2].replace("(", "").replace(")", "").split(";");
+
+                int x1 = Integer.parseInt(start[0]);
+                int y1 = Integer.parseInt(start[1]);
+
+                int x2 = Integer.parseInt(end[0]);
+                int y2 = Integer.parseInt(end[1]);
+
+                Zone zone = new Zone(zoneID, x1, x2,y1,y2);
+
+                zoneMap.put(zoneID,zone);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        // zoneMap.put(1, new Zone(1, 0, 50, 0, 50));
+        // zoneMap.put(2, new Zone(2, 51, 100, 0, 50));
+        // zoneMap.put(3, new Zone(3, 0, 50, 51, 100));
+        // zoneMap.put(4, new Zone(4, 51, 100, 51, 100));
 
         for (int i = 0; i < zoneMap.size(); i++) {
             Zone zone = zoneMap.get(i + 1);
