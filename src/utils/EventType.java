@@ -1,6 +1,6 @@
 package utils;
 
-public enum Event_Type {
+public enum EventType {
     FIRE_DETECTED,
     DRONE_REQUEST
 }

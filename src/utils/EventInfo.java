@@ -3,24 +3,101 @@ package utils;
 import java.time.LocalTime;
 
 public class EventInfo {
-    private final LocalTime time;
-    private final Integer zoneID;
-    private final Event_Type eventType;
-    private final Intensity intensity;
+    public final int latitude;
+    public final int longitude;
+    public final Intensity intensity;
+    public final EventType eventType;
+    public final LocalTime time;
+    private int remainingAgentRequired;
+    private Integer droneAssigned = null;
 
-    public EventInfo(LocalTime time, Integer zoneID, Event_Type eventType, Intensity intensity){
-        this.time = time;
-        this.zoneID = zoneID;
-        this.eventType = eventType;
+    /**
+     * Constructs a new EventInfo representing a fire event.
+     * Initializes required agent amount based on fire intensity.
+     * 
+     * @param latitude The latitude coordinate of the fire
+     * @param longitude The longitude coordinate of the fire
+     * @param intensity The intensity level of the fire (LOW, MODERATE, HIGH)
+     * @param eventType The type of event
+     * @param time The time the fire was reported
+     */
+    public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time) {
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.intensity = intensity;
+        this.eventType = eventType;
+        this.time = time;
+        switch (intensity) {
+            case HIGH:
+                this.remainingAgentRequired = 30;
+                break;
+            case MODERATE:
+                this.remainingAgentRequired = 20;
+                break;
+            case LOW:
+                this.remainingAgentRequired = 10;
+                break;
+        }
     }
 
-    public LocalTime getTime(){return time;}
+    /**
+     * Gets the location key for this fire in format "x,y".
+     * 
+     * @return The location string
+     */
+    public String getLocationKey() {
+        return this.longitude + "," + this.latitude;
+    }
 
-    public Integer getZoneID(){return zoneID;}
+    /**
+     * Checks if the fire has been extinguished.
+     * 
+     * @return true if no more agent is required, false otherwise
+     */
+    public synchronized boolean isExtinguished() {
+        return this.remainingAgentRequired <= 0;
+    }
 
-    public Event_Type getEventType(){return eventType;}
+    /**
+     * Applies firefighting agent to the fire.
+     * 
+     * @param amount The amount of agent to apply in liters
+     * @return The actual amount of agent used
+     */
+    public synchronized int applyAgent(int amount) {
+        if (amount > this.remainingAgentRequired) {
+            int used = this.remainingAgentRequired;
+            this.remainingAgentRequired = 0;
+            return used;
+        }
+        this.remainingAgentRequired -= amount;
+        return amount;
+    }
 
-    public Intensity getIntensity(){return intensity;}
+    /**
+     * Gets the remaining agent required to extinguish the fire.
+     * 
+     * @return The remaining agent amount in liters
+     */
+    public synchronized int getRemainingAgentRequired() {
+        return this.remainingAgentRequired;
+    }
 
+    /**
+     * Checks if a drone has been assigned to this fire.
+     * 
+     * @return true if a drone is assigned, false otherwise
+     */
+    public synchronized boolean hasDroneAssigned() {
+        return this.droneAssigned != null;
+    }
+
+    /**
+     * Assigns a drone to this fire.
+     * 
+     * @param droneId The ID of the drone to assign, or null to unassign
+     */
+    public synchronized void assignDrone(Integer droneId) {
+        this.droneAssigned = droneId;
+    }
 }
