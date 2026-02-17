@@ -10,6 +10,7 @@ import utils.LiveFireTracker;
 import utils.standardizedTime;
 import utils.EventType;
 import utils.Zone;
+import utils.ZoneReader;
 import utils.EndCondition;
 
 
@@ -34,16 +35,15 @@ public class FireIncident implements Runnable {
      * @param gui The GUI for printing status messages and errors
      */
     public FireIncident(LiveFireTracker fireTracker, String zoneFilePath, String eventFilePath,
-            EndCondition endCondition, standardizedTime standardTime, GUI gui) {
+        EndCondition endCondition, standardizedTime standardTime, GUI gui) {
         this.fireTracker = fireTracker;
         this.endCondition = endCondition;
         this.standardTime = standardTime;
         this.gui = gui;
 
         this.eventMap = new TreeMap<>();
-        this.zoneMap = new HashMap<>();
+        this.zoneMap = ZoneReader.readZoneFile(zoneFilePath);
 
-        readZonesFile(zoneFilePath);
         readEventsFile(eventFilePath);
     }
 
@@ -91,6 +91,10 @@ public class FireIncident implements Runnable {
                 ex.printStackTrace();
             }
         }
+    }
+
+    private void setZoneMap(HashMap<Integer, Zone> zoneMap) {
+        this.zoneMap = zoneMap;
     }
 
     /**
