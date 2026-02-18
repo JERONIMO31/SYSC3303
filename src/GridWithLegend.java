@@ -13,7 +13,6 @@ import java.awt.*;
 public class GridWithLegend {
 
     public GridWithLegend() {
-        JFrame frame = new JFrame("Fire Simulation Map");
 
         GridPanel grid = new GridPanel(20, 25, "sample_zone_file.csv");
         LegendPanel legend = new LegendPanel();
@@ -31,11 +30,5 @@ public class GridWithLegend {
         mainPanel.add(grid, BorderLayout.CENTER);
         mainPanel.add(legend, BorderLayout.EAST);
 
-        // Configure frame
-        frame.add(mainPanel);
-        frame.setSize(800, 500);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 }

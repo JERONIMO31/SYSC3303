@@ -13,7 +13,7 @@ public class FireFightingDroneSimulation {
      */
     public static void main(String[] args) {
         GUI gui = new GUI();
-        GridWithLegend w = new GridWithLegend();
+        //GridWithLegend w = new GridWithLegend();
         gui.setVisible(true);
     }
 }

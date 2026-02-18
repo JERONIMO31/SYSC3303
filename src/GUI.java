@@ -29,7 +29,9 @@ public class GUI extends JFrame {
     public GUI() {
         setTitle("Fire Fighting Drone Simulation");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridBagLayout());
+        setLayout(new GridLayout());
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -44,7 +46,7 @@ public class GUI extends JFrame {
         textArea = new JTextArea(20, 80);
         textArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(textArea);
-        add(scrollPane, gbc);
+        textPanel.add(scrollPane, gbc);
 
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -54,35 +56,35 @@ public class GUI extends JFrame {
         gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
-        add(new JLabel("Zone File:"), gbc);
+        textPanel.add(new JLabel("Zone File:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         zoneFileField = new JTextField(20);
-        add(zoneFileField, gbc);
+        textPanel.add(zoneFileField, gbc);
 
         gbc.gridx = 2;
         gbc.weightx = 0;
         zoneFileBrowseButton = new JButton("Browse");
         zoneFileBrowseButton.addActionListener(e -> browseFile(zoneFileField));
-        add(zoneFileBrowseButton, gbc);
+        textPanel.add(zoneFileBrowseButton, gbc);
 
         // Event file
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 1;
-        add(new JLabel("Event File:"), gbc);
+        textPanel.add(new JLabel("Event File:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         eventFileField = new JTextField(20);
-        add(eventFileField, gbc);
+        textPanel.add(eventFileField, gbc);
 
         gbc.gridx = 2;
         gbc.weightx = 0;
         eventFileBrowseButton = new JButton("Browse");
         eventFileBrowseButton.addActionListener(e -> browseFile(eventFileField));
-        add(eventFileBrowseButton, gbc);
+        textPanel.add(eventFileBrowseButton, gbc);
 
         // Start button
         gbc.gridx = 1;
@@ -90,7 +92,7 @@ public class GUI extends JFrame {
         gbc.gridwidth = 1;
         startButton = new JButton("Start");
         startButton.addActionListener(e -> startSimulation());
-        add(startButton, gbc);
+        textPanel.add(startButton, gbc);
 
         // Stop button
         gbc.gridx = 2;
@@ -99,7 +101,26 @@ public class GUI extends JFrame {
         stopButton = new JButton("Stop");
         stopButton.setEnabled(false);
         stopButton.addActionListener(e -> stopSimulation());
-        add(stopButton, gbc);
+        textPanel.add(stopButton, gbc);
+
+        GridPanel grid = new GridPanel(20, 25, "sample_zone_file.csv");
+        LegendPanel legend = new LegendPanel();
+
+        // Legend entries
+        legend.addLegendItem(Color.LIGHT_GRAY,"Z(n)", "Zone Label");
+        legend.addLegendItem(Color.RED, "","Active Fire");
+        legend.addLegendItem(Color.GREEN,"", "Extinguished Fire");
+        legend.addLegendItem(Color.ORANGE,"D(n)", "Drone Outbound");
+        legend.addLegendItem(Color.GREEN,"D(n)", "Drone Extinguishing Fire");
+        legend.addLegendItem(Color.MAGENTA, "D(3)","Drone Returning");
+
+        // Layout main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(grid, BorderLayout.CENTER);
+        mainPanel.add(legend, BorderLayout.EAST);
+
+        add(mainPanel);
+        add(textPanel);
 
         pack();
         setLocationRelativeTo(null);
