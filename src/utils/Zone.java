@@ -3,10 +3,10 @@ package utils;
 public class Zone {
 
     public final int zoneId;
-    public final int x1;
-    public final int x2;
-    public final int y1;
-    public final int y2;
+    public int x1;
+    public int x2;
+    public int y1;
+    public int y2;
     public final int latitude;
     public final int longitude;
 

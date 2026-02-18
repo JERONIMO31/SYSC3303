@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.util.HashMap;
 
 import utils.Zone;
+import utils.ZoneReader;
 
 /**
  * GridPanel is a custom Swing panel that renders a resizable 2D grid.
@@ -44,74 +45,30 @@ class GridPanel extends JPanel {
      * @param rows number of rows in the grid
      * @param cols number of columns in the grid
      */
-    public GridPanel(int rows, int cols) {
+    public GridPanel(int rows, int cols, String zoneFilePath) {
         this.rows = rows;
         this.cols = cols;
 
         cellColors = new Color[rows][cols];
         cellTexts  = new String[rows][cols];
-        zones      = new HashMap<>();
+        zones = ZoneReader.readZoneFile(zoneFilePath);
+        scaleZones(gridScale);
     }
 
     /**
-     * Reads a CSV file containing zone definitions and loads them into the grid.
-     *
-     * Expected file format:
-     * ZoneID,(x1;y1),(x2;y2)
-     *
-     * Coordinates are scaled down to fit the grid.
+     * Zone coordinates are scaled down to fit the grid.
      * The center cell of each zone is automatically marked as an event.
      *
-     * @param zoneFilePath path to the zone definition file
+     * @param scaleFactor TBD
      */
-    public void readZonesFile(String zoneFilePath) {
-        BufferedReader zoneReader = null;
-
-        try {
-            zoneReader = new BufferedReader(new FileReader(zoneFilePath));
-            zoneReader.readLine(); // Skip header line
-
-            String zoneLine;
-            while ((zoneLine = zoneReader.readLine()) != null) {
-                try {
-                    String[] row = zoneLine.split(",");
-                    if (row.length != 3) {
-                        continue; // Skip malformed lines
-                    }
-
-                    int zoneID = Integer.parseInt(row[0].trim());
-
-                    String[] start = row[1].replace("(", "").replace(")", "").split(";");
-                    String[] end   = row[2].replace("(", "").replace(")", "").split(";");
-
-                    // Scale coordinates to grid space
-                    int x1 = Integer.parseInt(start[0].trim()) / gridScale;
-                    int y1 = Integer.parseInt(start[1].trim()) / gridScale;
-                    int x2 = Integer.parseInt(end[0].trim())   / gridScale;
-                    int y2 = Integer.parseInt(end[1].trim())   / gridScale;
-
-                    Zone zone = new Zone(zoneID, x1, x2, y1, y2);
-                    zones.put(zoneID, zone);
-
-                } catch (Exception ex) {
-                    // Skip invalid zone entries
-                }
-            }
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            try {
-                if (zoneReader != null) {
-                    zoneReader.close();
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
+    public void scaleZones(int scaleFactor) {
         // Mark the center cell of each zone as an event
         for (Zone z : zones.values()) {
+
+            z.x1 /= scaleFactor;
+            z.y1 /= scaleFactor;
+            z.x2 /= scaleFactor;
+            z.y2 /= scaleFactor;
 
             // ----- Zone label cell (top-left of zone) -----
             int labelRow = z.y1;

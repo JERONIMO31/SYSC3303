@@ -9,19 +9,14 @@ import java.awt.*;
      * - Load zone data from a CSV file into the grid.
      * - Add legend entries for visualization of fires, extinguished fires, and drone activity.
      * - Assemble the GUI and display it.
-     *
-     * @param args command-line arguments (not used)
 */
 public class GridWithLegend {
 
     public GridWithLegend() {
         JFrame frame = new JFrame("Fire Simulation Map");
 
-        GridPanel grid = new GridPanel(20, 25);
+        GridPanel grid = new GridPanel(20, 25, "sample_zone_file.csv");
         LegendPanel legend = new LegendPanel();
-
-        // Load zone layout from file
-        grid.readZonesFile("sample_zone_file.csv");
 
         // Legend entries
         legend.addLegendItem(Color.LIGHT_GRAY,"Z(n)", "Zone Label");

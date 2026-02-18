@@ -3,8 +3,13 @@ package utils;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashMap;
-
 public class ZoneReader {
+    /**
+     * Reads and parses zone definitions from a CSV file.
+     * Skips invalid lines and reports errors to the GUI.
+     *
+     * @param zoneFilePath Path to the CSV file containing zone data
+     */
     public static HashMap<Integer, Zone> readZoneFile(String zoneFilePath) {
         HashMap<Integer, Zone> zoneMap = new HashMap<>();
         BufferedReader zoneReader = null;
@@ -14,6 +19,12 @@ public class ZoneReader {
             String zoneLine;
             while ((zoneLine = zoneReader.readLine()) != null) {
                 try {
+                    /*
+                    Zone format is
+                    id,(upperCornerX,upperCornerY),(lowerCornerX,lowerCornerY) with the two sets
+                    of coordinates defining a rectangle (in the sample file, these are both squares,
+                    but this is not always the case)
+                    */
                     String[] row = zoneLine.split(",");
                     if (row.length != 3) {
                         //gui.printMessage("ERROR: Skipping invalid zone line: " + zoneLine);
