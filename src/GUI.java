@@ -21,6 +21,7 @@ public class GUI extends JFrame {
     private Thread droneThread;
     private Thread incidentThread;
     private Thread schedulerThread;
+    private GridWithLegend grid;
 
     /**
      * Constructs the GUI window for the fire fighting drone simulation.
@@ -103,23 +104,7 @@ public class GUI extends JFrame {
         stopButton.addActionListener(e -> stopSimulation());
         textPanel.add(stopButton, gbc);
 
-        GridPanel grid = new GridPanel(20, 25, "sample_zone_file.csv");
-        LegendPanel legend = new LegendPanel();
-
-        // Legend entries
-        legend.addLegendItem(Color.LIGHT_GRAY,"Z(n)", "Zone Label");
-        legend.addLegendItem(Color.RED, "","Active Fire");
-        legend.addLegendItem(Color.GREEN,"", "Extinguished Fire");
-        legend.addLegendItem(Color.ORANGE,"D(n)", "Drone Outbound");
-        legend.addLegendItem(Color.GREEN,"D(n)", "Drone Extinguishing Fire");
-        legend.addLegendItem(Color.MAGENTA, "D(3)","Drone Returning");
-
-        // Layout main panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(grid, BorderLayout.CENTER);
-        mainPanel.add(legend, BorderLayout.EAST);
-
-        add(mainPanel);
+        //add(new GridWithLegend(""));
         add(textPanel);
 
         pack();
@@ -191,6 +176,14 @@ public class GUI extends JFrame {
         incidentThread = new Thread(fireIncident);
         scheduler = new Scheduler(droneTracker, fireTracker, endCondition, this);
         schedulerThread = new Thread(scheduler);
+        if (grid == null) {
+            grid = new GridWithLegend(zoneFile, fireTracker);
+            add(grid);
+            pack();
+        }
+        else {
+            grid.replaceZoneFile(zoneFile);
+        }
 
         droneThread.start();
         incidentThread.start();
@@ -261,5 +254,9 @@ public class GUI extends JFrame {
                 textArea.append(message + "\n");
             }
         });
+    }
+
+    public void updateEvents(LiveFireTracker fireTracker){
+        grid.updateFires(fireTracker.getFireQueue(), fireTracker.getFiresBeingFought());
     }
 }

@@ -1,5 +1,12 @@
+import utils.EventInfo;
+import utils.LiveFireTracker;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Queue;
+
 /**
      * Main entry point for the Fire Simulation Map application.
      *
@@ -10,12 +17,14 @@ import java.awt.*;
      * - Add legend entries for visualization of fires, extinguished fires, and drone activity.
      * - Assemble the GUI and display it.
 */
-public class GridWithLegend {
+public class GridWithLegend extends JPanel {
 
-    public GridWithLegend() {
+    private GridPanel grid;
+    private LegendPanel legend;
+    public GridWithLegend(String zoneFilePath, LiveFireTracker fireTracker) {
 
-        GridPanel grid = new GridPanel(20, 25, "sample_zone_file.csv");
-        LegendPanel legend = new LegendPanel();
+        grid = new GridPanel(20, 25, zoneFilePath);
+        legend = new LegendPanel();
 
         // Legend entries
         legend.addLegendItem(Color.LIGHT_GRAY,"Z(n)", "Zone Label");
@@ -25,10 +34,24 @@ public class GridWithLegend {
         legend.addLegendItem(Color.GREEN,"D(n)", "Drone Extinguishing Fire");
         legend.addLegendItem(Color.MAGENTA, "D(3)","Drone Returning");
 
-        // Layout main panel  
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(grid, BorderLayout.CENTER);
-        mainPanel.add(legend, BorderLayout.EAST);
+        // Layout main panel
+        setLayout(new BorderLayout());
+        add(grid, BorderLayout.CENTER);
+        add(legend, BorderLayout.EAST);
 
+    }
+
+    public void replaceZoneFile(String zoneFilePath){
+        grid.replaceZoneFile(zoneFilePath);
+        repaint();
+    }
+
+    public void updateFires(Queue<EventInfo> fireQueue, HashMap<String, EventInfo> assignedFires){
+        ArrayList<EventInfo> fires = new ArrayList<>();
+        fires.addAll(fireQueue);
+        fires.addAll(assignedFires.values());
+        for (EventInfo fire : fires){
+            System.out.println(fire.getLocationKey());
+        }
     }
 }

@@ -65,10 +65,14 @@ class GridPanel extends JPanel {
         // Mark the center cell of each zone as an event
         for (Zone z : zones.values()) {
 
+            System.out.println(z);
+
             z.x1 /= scaleFactor;
             z.y1 /= scaleFactor;
             z.x2 /= scaleFactor;
             z.y2 /= scaleFactor;
+            z.latitude /= scaleFactor;
+            z.longitude /= scaleFactor;
 
             // ----- Zone label cell (top-left of zone) -----
             int labelRow = z.y1;
@@ -128,10 +132,10 @@ class GridPanel extends JPanel {
     /**
      * Replaces the current zone map.
      *
-     * @param zones map of zone IDs to Zone objects
+     * @param zoneFilePath string to path of new Zone file
      */
-    public void setZones(HashMap<Integer, Zone> zones) {
-        this.zones = zones;
+    public void replaceZoneFile(String zoneFilePath) {
+        this.zones = ZoneReader.readZoneFile(zoneFilePath);
     }
 
     /**
