@@ -91,4 +91,12 @@ public class LiveFireTracker {
             markFireAsDead(fireKey);
         }
     }
+
+    public synchronized Queue<EventInfo> getFireQueue() {
+        return fireQueue;
+    }
+
+    public synchronized HashMap<String, EventInfo> getFiresBeingFought() {
+        return firesBeingFought;
+    }
 }

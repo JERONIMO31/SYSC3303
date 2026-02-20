@@ -41,6 +41,7 @@ public class Scheduler implements Runnable
                 next_fire = fireTracker.getNextEventInfo();
                 if (next_fire != null) {
                     gui.printMessage("Scheduler handling fire at " + next_fire.getLocationKey() + " with intensity " + next_fire.intensity + " and remaining agent requirement of " + next_fire.getRemainingAgentRequired() + "L.");
+                    gui.updateEvents(fireTracker);
                 }
             } else {
                 DroneInfo ready_drone = null;

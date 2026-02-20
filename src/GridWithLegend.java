@@ -1,5 +1,12 @@
+import utils.EventInfo;
+import utils.LiveFireTracker;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Queue;
+
 /**
      * Main entry point for the Fire Simulation Map application.
      *
@@ -9,19 +16,15 @@ import java.awt.*;
      * - Load zone data from a CSV file into the grid.
      * - Add legend entries for visualization of fires, extinguished fires, and drone activity.
      * - Assemble the GUI and display it.
-     *
-     * @param args command-line arguments (not used)
 */
-public class GridWithLegend {
+public class GridWithLegend extends JPanel {
 
-    public GridWithLegend() {
-        JFrame frame = new JFrame("Fire Simulation Map");
+    private GridPanel grid;
+    private LegendPanel legend;
+    public GridWithLegend(String zoneFilePath, LiveFireTracker fireTracker) {
 
-        GridPanel grid = new GridPanel(20, 25);
-        LegendPanel legend = new LegendPanel();
-
-        // Load zone layout from file
-        grid.readZonesFile("sample_zone_file.csv");
+        grid = new GridPanel(20, 25, zoneFilePath);
+        legend = new LegendPanel();
 
         // Legend entries
         legend.addLegendItem(Color.LIGHT_GRAY,"Z(n)", "Zone Label");
@@ -31,16 +34,24 @@ public class GridWithLegend {
         legend.addLegendItem(Color.GREEN,"D(n)", "Drone Extinguishing Fire");
         legend.addLegendItem(Color.MAGENTA, "D(3)","Drone Returning");
 
-        // Layout main panel  
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(grid, BorderLayout.CENTER);
-        mainPanel.add(legend, BorderLayout.EAST);
+        // Layout main panel
+        setLayout(new BorderLayout());
+        add(grid, BorderLayout.CENTER);
+        add(legend, BorderLayout.EAST);
 
-        // Configure frame
-        frame.add(mainPanel);
-        frame.setSize(800, 500);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+    }
+
+    public void replaceZoneFile(String zoneFilePath){
+        grid.replaceZoneFile(zoneFilePath);
+        repaint();
+    }
+
+    public void updateFires(Queue<EventInfo> fireQueue, HashMap<String, EventInfo> assignedFires){
+        ArrayList<EventInfo> fires = new ArrayList<>();
+        fires.addAll(fireQueue);
+        fires.addAll(assignedFires.values());
+        for (EventInfo fire : fires){
+            System.out.println(fire.getLocationKey());
+        }
     }
 }
