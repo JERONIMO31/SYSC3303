@@ -71,3 +71,4 @@ The simulation requires both files to work correctly:
 4. WORK BREAKDOWN (Iteration 2)
 
 Simon D'Amato: Updated README and UML class and sequence diagrams.
+Anitsan Robert: State Machine Diagrams and required Unit Testing for Iteration 1
