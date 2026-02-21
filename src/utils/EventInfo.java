@@ -40,6 +40,14 @@ public class EventInfo {
         }
     }
 
+    public EventInfo(){
+        this.latitude = 100;
+        this.longitude = 100;
+        this.intensity = Intensity.MODERATE;
+        this.eventType = EventType.FIRE_DETECTED;
+        this.time = LocalTime.now();
+    }
+
     /**
      * Gets the location key for this fire in format "x,y".
      * 

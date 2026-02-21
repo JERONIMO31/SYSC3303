@@ -47,7 +47,6 @@ public class FireIncident implements Runnable {
         readEventsFile(eventFilePath);
     }
 
-
     /**
      * Reads and parses fire event data from a CSV file.
      * Skips invalid lines and reports errors to the GUI.
