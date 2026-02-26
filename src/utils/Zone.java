@@ -3,12 +3,12 @@ package utils;
 public class Zone {
 
     public final int zoneId;
-    public final int x1;
-    public final int x2;
-    public final int y1;
-    public final int y2;
-    public final int latitude;
-    public final int longitude;
+    public int x1;
+    public int x2;
+    public int y1;
+    public int y2;
+    public int latitude;
+    public int longitude;
 
     /**
      * Constructs a Zone with the specified boundaries.
@@ -28,6 +28,13 @@ public class Zone {
         this.y2 = y2;
         this.latitude = (y1 + y2) / 2;
         this.longitude = (x1 + x2) / 2;
+    }
+
+    @Override
+    public String toString(){
+        return Integer.toString(zoneId) + ": (" + Integer.toString(x1)
+                + " " + Integer.toString(y1) + "), (" + Integer.toString(x2)
+                + " " + Integer.toString(y2) + ")";
     }
 
     /**
