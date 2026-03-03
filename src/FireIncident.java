@@ -229,21 +229,24 @@ public class FireIncident {
     public void mainLoop() {
         while (!Thread.currentThread().isInterrupted()) {
             LocalTime currentTime = standardTime.getRelativeTime();
-            if (eventMap.firstKey() != null && !eventMap.firstKey().isAfter(currentTime)) {
-                EventInfo fire = eventMap.remove(eventMap.firstKey());
+            if (!eventMap.isEmpty()) {
+                LocalTime nextEventTime = eventMap.firstKey();
+                if (!nextEventTime.isAfter(currentTime)) {
+                    EventInfo fire = eventMap.remove(nextEventTime);
 
-                gui.printMessage("New fire reported at " + fire.getLocationKey() + " with intensity " + fire.intensity
-                        + " at time " + fire.time + ".");
-                sendEventInfo(fire);
+                    gui.printMessage(
+                            "New fire reported at " + fire.getLocationKey() + " with intensity " + fire.intensity
+                                    + " at time " + fire.time + ".");
+                    sendEventInfo(fire);
+                }
             }
             try {
                 if (eventMap.isEmpty()) {
                     Thread.sleep(1000);
                     continue;
                 }
-                long timeToNextFire = eventMap.firstKey() != null
-                        ? java.time.Duration.between(currentTime, eventMap.firstKey()).toMillis()
-                        : -1;
+                LocalTime nextEventTime = eventMap.firstKey();
+                long timeToNextFire = java.time.Duration.between(currentTime, nextEventTime).toMillis();
                 if (timeToNextFire > 0) {
                     Thread.sleep(Math.min(timeToNextFire, 1000));
                 }
