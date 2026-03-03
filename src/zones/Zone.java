@@ -1,4 +1,4 @@
-package utils;
+package zones;
 
 public class Zone {
 
@@ -15,10 +15,10 @@ public class Zone {
      * Calculates the center point (latitude/longitude) from the boundaries.
      * 
      * @param zoneId The unique identifier for this zone
-     * @param x1 The starting x coordinate
-     * @param x2 The ending x coordinate
-     * @param y1 The starting y coordinate
-     * @param y2 The ending y coordinate
+     * @param x1     The starting x coordinate
+     * @param x2     The ending x coordinate
+     * @param y1     The starting y coordinate
+     * @param y2     The ending y coordinate
      */
     public Zone(int zoneId, int x1, int x2, int y1, int y2) {
         this.zoneId = zoneId;
@@ -31,7 +31,7 @@ public class Zone {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return Integer.toString(zoneId) + ": (" + Integer.toString(x1)
                 + " " + Integer.toString(y1) + "), (" + Integer.toString(x2)
                 + " " + Integer.toString(y2) + ")";

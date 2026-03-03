@@ -1,6 +1,6 @@
 
-import utils.DroneInfo;
-import utils.LiveDroneTracker;
+import drone.DroneInfo;
+import drone.LiveDroneTracker;
 import utils.EndCondition;
 
 public class Drone implements Runnable {
@@ -12,10 +12,11 @@ public class Drone implements Runnable {
     /**
      * Constructs a new Drone thread.
      * 
-     * @param info The DroneInfo object containing drone state and capabilities
-     * @param tracker The LiveDroneTracker for managing drone availability
+     * @param info         The DroneInfo object containing drone state and
+     *                     capabilities
+     * @param tracker      The LiveDroneTracker for managing drone availability
      * @param endCondition Shared condition for stopping the simulation
-     * @param gui The GUI for printing status messages
+     * @param gui          The GUI for printing status messages
      */
     public Drone(DroneInfo info, LiveDroneTracker tracker, EndCondition endCondition, GUI gui) {
         this.droneInfo = info;

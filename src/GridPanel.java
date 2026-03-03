@@ -4,8 +4,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashMap;
 
-import utils.Zone;
-import utils.ZoneReader;
+import zones.Zone;
+import zones.ZoneReader;
 
 /**
  * GridPanel is a custom Swing panel that renders a resizable 2D grid.
@@ -50,7 +50,7 @@ class GridPanel extends JPanel {
         this.cols = cols;
 
         cellColors = new Color[rows][cols];
-        cellTexts  = new String[rows][cols];
+        cellTexts = new String[rows][cols];
         zones = ZoneReader.readZoneFile(zoneFilePath);
         scaleZones(gridScale);
     }
@@ -94,7 +94,7 @@ class GridPanel extends JPanel {
                 setCellText(eventRow, eventCol, "M");
             }
 
-            //RECREATING STATIC GUI
+            // RECREATING STATIC GUI
             setCellColor(7, 4, Color.ORANGE);
             setCellText(7, 4, "D(2)");
             setCellColor(19, 0, Color.ORANGE);
@@ -108,8 +108,8 @@ class GridPanel extends JPanel {
     /**
      * Sets the background color of a specific grid cell.
      *
-     * @param r row index
-     * @param c column index
+     * @param r     row index
+     * @param c     column index
      * @param color color to apply
      */
     public void setCellColor(int r, int c, Color color) {
@@ -120,8 +120,8 @@ class GridPanel extends JPanel {
     /**
      * Sets the text label for a specific grid cell.
      *
-     * @param r row index
-     * @param c column index
+     * @param r    row index
+     * @param c    column index
      * @param text label to display
      */
     public void setCellText(int r, int c, String text) {
@@ -141,12 +141,13 @@ class GridPanel extends JPanel {
     /**
      * Draws all zones using thick borders and labels.
      *
-     * @param g2 graphics context
-     * @param cellWidth width of one grid cell
+     * @param g2         graphics context
+     * @param cellWidth  width of one grid cell
      * @param cellHeight height of one grid cell
      */
     private void drawZones(Graphics2D g2, int cellWidth, int cellHeight) {
-        if (zones == null) return;
+        if (zones == null)
+            return;
 
         g2.setColor(Color.BLACK);
         g2.setStroke(new BasicStroke(4));
@@ -155,7 +156,7 @@ class GridPanel extends JPanel {
             int x = z.x1 * cellWidth;
             int y = z.y1 * cellHeight;
 
-            int width  = (z.x2 - z.x1) * cellWidth;
+            int width = (z.x2 - z.x1) * cellWidth;
             int height = (z.y2 - z.y1) * cellHeight;
 
             // Draw zone border
@@ -184,7 +185,7 @@ class GridPanel extends JPanel {
 
         Graphics2D g2 = (Graphics2D) g;
 
-        int cellWidth  = getWidth() / cols;
+        int cellWidth = getWidth() / cols;
         int cellHeight = getHeight() / rows;
 
         // Draw grid cells
@@ -207,10 +208,9 @@ class GridPanel extends JPanel {
                     int th = fm.getAscent();
 
                     g2.drawString(
-                        cellTexts[r][c],
-                        x + (cellWidth - tw) / 2,
-                        y + (cellHeight + th) / 2 - 2
-                    );
+                            cellTexts[r][c],
+                            x + (cellWidth - tw) / 2,
+                            y + (cellHeight + th) / 2 - 2);
                 }
 
                 // Cell border

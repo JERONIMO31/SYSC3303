@@ -1,16 +1,11 @@
+
 import javax.swing.*;
-
-import drone.DroneInfo;
-import drone.LiveDroneTracker;
-import event.LiveFireTracker;
-
 import java.awt.*;
 import java.io.File;
 
 import utils.*;
 
-public class GUI extends JFrame {
-
+public class FireIncidentGUI extends JFrame {
     private JTextArea textArea;
     private JButton startButton;
     private JButton stopButton;
@@ -19,21 +14,10 @@ public class GUI extends JFrame {
     private JTextField eventFileField;
     private JButton eventFileBrowseButton;
     private StandardizedTime standardTime;
-    private Drone drone;
     private FireIncident fireIncident;
-    private Scheduler scheduler;
-    private EndCondition endCondition;
-    private Thread droneThread;
-    private Thread incidentThread;
-    private Thread schedulerThread;
-    private GridWithLegend grid;
+    private Thread fireIncidentThread;
 
-    /**
-     * Constructs the GUI window for the fire fighting drone simulation.
-     * Initializes all UI components including text area, file selectors, and
-     * control buttons.
-     */
-    public GUI() {
+    public FireIncidentGUI() {
         setTitle("Fire Fighting Drone Simulation");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout());
@@ -173,66 +157,33 @@ public class GUI extends JFrame {
         printMessage("Zone File: " + zoneFile);
         printMessage("Event File: " + eventFile);
 
-        this.standardTime = new StandardizedTime(java.time.LocalTime.now());
-        this.endCondition = new EndCondition();
-        LiveFireTracker fireTracker = new LiveFireTracker();
-        LiveDroneTracker droneTracker = new LiveDroneTracker(1);
-        DroneInfo[] allDrones = droneTracker.getAllDrones();
-        DroneInfo droneInfo = allDrones[0];
-        droneTracker.markDroneAsReady(droneInfo.droneId);
-        drone = new Drone(droneInfo, droneTracker, endCondition, this);
-        droneThread = new Thread(drone);
-        fireIncident = new FireIncident(fireTracker, zoneFile, eventFile, endCondition, standardTime, this);
-        incidentThread = new Thread(fireIncident);
-        scheduler = new Scheduler(droneTracker, fireTracker, endCondition, this);
-        schedulerThread = new Thread(scheduler);
-        if (grid == null) {
-            grid = new GridWithLegend(zoneFile, fireTracker);
-            add(grid);
-            pack();
-        } else {
-            grid.replaceZoneFile(zoneFile);
-        }
-
-        droneThread.start();
-        incidentThread.start();
-        schedulerThread.start();
-
-        // Monitor threads and re-enable buttons when all are done
-        new Thread(() -> {
+        fireIncidentThread = new Thread(() -> {
             try {
-                droneThread.join();
-                incidentThread.join();
-                schedulerThread.join();
+                this.fireIncident = new FireIncident(zoneFile, eventFile, this);
+                printMessage("FireIncident initialized.");
+                this.fireIncident.mainLoop();
+                printMessage("FireIncident finished.");
+            } catch (Exception e) {
+                printMessage("FireIncident error: " + e.getMessage());
+            } finally {
                 SwingUtilities.invokeLater(() -> {
+                    fireIncident = null;
                     setButtonsEnabled(true);
                     stopButton.setEnabled(false);
-                    printMessage("Simulation completed.");
                 });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
             }
-        }).start();
+        }, "FireIncident-Main-Thread");
+        fireIncidentThread.start();
     }
 
-    /**
-     * Stops the currently running simulation.
-     * Sets the end condition flag to signal all threads to stop.
-     */
     private void stopSimulation() {
-        if (endCondition != null) {
-            endCondition.setStop(true);
-        }
-        if (droneThread != null) {
-            droneThread.interrupt();
-        }
-        if (incidentThread != null) {
-            incidentThread.interrupt();
-        }
-        if (schedulerThread != null) {
-            schedulerThread.interrupt();
-        }
         printMessage("Stopping simulation...");
+        if (fireIncidentThread != null && fireIncidentThread.isAlive()) {
+            fireIncidentThread.interrupt();
+        }
+        setButtonsEnabled(true);
+        stopButton.setEnabled(false);
+        this.fireIncident = null;
     }
 
     /**
@@ -246,6 +197,10 @@ public class GUI extends JFrame {
         eventFileBrowseButton.setEnabled(enabled);
         zoneFileField.setEnabled(enabled);
         eventFileField.setEnabled(enabled);
+    }
+
+    public void setStandardTime(StandardizedTime standardTime) {
+        this.standardTime = standardTime;
     }
 
     /**
@@ -265,7 +220,10 @@ public class GUI extends JFrame {
         });
     }
 
-    public void updateEvents(LiveFireTracker fireTracker) {
-        grid.updateFires(fireTracker.getFireQueue(), fireTracker.getFiresBeingFought());
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            FireIncidentGUI gui = new FireIncidentGUI();
+            gui.setVisible(true);
+        });
     }
 }

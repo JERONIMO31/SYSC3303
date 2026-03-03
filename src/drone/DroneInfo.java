@@ -1,27 +1,65 @@
-package utils;
+package drone;
+
+import event.EventInfo;
 
 public class DroneInfo {
+
+    private enum State {
+        IDLE, TRAVELING_TO_FIRE, EXTINGUISHING, TRAVELING_HOME, FAULTED
+    }
 
     public final int droneId;
     private EventInfo assignedFire = null;
     private int availableAgent;
     private int longitude = 0;
     private int latitude = 0;
-    private static final int AGENT_CAPACITY = 15;
-    private static final int SPEED = 15; // m/s
-    private static final int ACCELERATION = 5; // m/s^2
-    private static final int DEPLOY_RATE = 2; // L/s
-    private static final int OPEN_NOZZLE_TIME = 5; // seconds
+    private int agent_capacity;
+    private int speed; // m/s
+    private int acceleration; // m/s^2
+    private int deploy_rate; // L/s
+    private int open_nozzle_time; // seconds
+
+    private State currentState = State.IDLE;
 
     /**
-     * Constructs a new DroneInfo with the specified drone ID.
+     * Constructs a new DroneInfo with the specified drone ID and parameters.
      * Initializes the drone with full agent capacity at home base (0,0).
      * 
-     * @param droneId The unique identifier for this drone
+     * @param droneId        The unique identifier for this drone
+     * @param agentCapacity  The maximum agent capacity in liters
+     * @param speed          The maximum speed in m/s
+     * @param acceleration   The acceleration in m/s^2
+     * @param deployRate     The agent deploy rate in L/s
+     * @param openNozzleTime The time to open the nozzle in seconds
      */
-    public DroneInfo(int droneId) {
+    public DroneInfo(int droneId, int agentCapacity, int speed, int acceleration, int deployRate, int openNozzleTime) {
         this.droneId = droneId;
-        this.availableAgent = AGENT_CAPACITY;
+        this.agent_capacity = agentCapacity;
+        this.speed = speed;
+        this.acceleration = acceleration;
+        this.deploy_rate = deployRate;
+        this.open_nozzle_time = openNozzleTime;
+        this.availableAgent = agent_capacity;
+    }
+
+    /**
+     * Gets the fire currently assigned to this drone.
+     * 
+     * @return The assigned EventInfo, or null if no fire is assigned
+     */
+    public EventInfo getAssignedFire() {
+        return this.assignedFire;
+    }
+
+    /**
+     * Unassigns the current fire from this drone and unassigns this drone from the
+     * fire.
+     */
+    public void unassignFire() {
+        if (this.assignedFire != null) {
+            this.assignedFire.assignDrone(null);
+            this.assignedFire = null;
+        }
     }
 
     /**
@@ -50,7 +88,7 @@ public class DroneInfo {
      * Refills the drone's firefighting agent to maximum capacity.
      */
     public synchronized void refillAgent() {
-        this.setAgentLevel(AGENT_CAPACITY);
+        this.setAgentLevel(agent_capacity);
     }
 
     /**
@@ -66,7 +104,7 @@ public class DroneInfo {
         }
         int agentToDeploy = Math.min(this.getAgentLevel(), this.assignedFire.getRemainingAgentRequired());
         try {
-            Thread.sleep(OPEN_NOZZLE_TIME * 1000 + (agentToDeploy / DEPLOY_RATE) * 1000);
+            Thread.sleep(open_nozzle_time * 1000 + (agentToDeploy / deploy_rate) * 1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -107,7 +145,8 @@ public class DroneInfo {
 
     /**
      * Calculates the travel time from current location to assigned fire.
-     * Uses physics-based calculation considering acceleration, max speed, and distance.
+     * Uses physics-based calculation considering acceleration, max speed, and
+     * distance.
      * 
      * @return Travel time in seconds, or 0 if no fire is assigned
      */
@@ -116,14 +155,14 @@ public class DroneInfo {
             return 0;
         }
         double distance = Math.sqrt(Math.pow(this.assignedFire.latitude, 2) + Math.pow(this.assignedFire.longitude, 2));
-        double timeToMaxSpeed = SPEED / ACCELERATION;
-        double distanceToMaxSpeed = 0.5 * ACCELERATION * Math.pow(timeToMaxSpeed, 2);
+        double timeToMaxSpeed = speed / acceleration;
+        double distanceToMaxSpeed = 0.5 * acceleration * Math.pow(timeToMaxSpeed, 2);
         double totalTime;
         if (distance < 2 * distanceToMaxSpeed) {
-            totalTime = 2 * Math.sqrt(distance / ACCELERATION);
+            totalTime = 2 * Math.sqrt(distance / acceleration);
         } else {
             double cruisingDistance = distance - 2 * distanceToMaxSpeed;
-            double cruisingTime = cruisingDistance / SPEED;
+            double cruisingTime = cruisingDistance / speed;
             totalTime = 2 * timeToMaxSpeed + cruisingTime;
         }
         return totalTime;
@@ -144,7 +183,8 @@ public class DroneInfo {
     /**
      * Checks if the assigned fire has been extinguished.
      * 
-     * @return true if assigned fire is extinguished, false otherwise or if no fire assigned
+     * @return true if assigned fire is extinguished, false otherwise or if no fire
+     *         assigned
      */
     public synchronized boolean isFireExtinguished() {
         if (this.assignedFire != null) {
@@ -170,7 +210,7 @@ public class DroneInfo {
      * Updates the drone's current location coordinates.
      * 
      * @param longitude The longitude coordinate
-     * @param latitude The latitude coordinate
+     * @param latitude  The latitude coordinate
      */
     private synchronized void setLocation(int longitude, int latitude) {
         this.longitude = longitude;
@@ -189,8 +229,8 @@ public class DroneInfo {
             Thread.currentThread().interrupt();
         }
         this.setLocation(0, 0);
-        this.assignedFire.assignDrone(null);    // unassign drone from fire
-        this.assignedFire = null;                       // clear assigned fire
+        this.assignedFire.assignDrone(null); // unassign drone from fire
+        this.assignedFire = null; // clear assigned fire
     }
 
     /**

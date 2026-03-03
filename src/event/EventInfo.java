@@ -1,4 +1,4 @@
-package utils;
+package event;
 
 import java.time.LocalTime;
 
@@ -15,11 +15,11 @@ public class EventInfo {
      * Constructs a new EventInfo representing a fire event.
      * Initializes required agent amount based on fire intensity.
      * 
-     * @param latitude The latitude coordinate of the fire
+     * @param latitude  The latitude coordinate of the fire
      * @param longitude The longitude coordinate of the fire
      * @param intensity The intensity level of the fire (LOW, MODERATE, HIGH)
      * @param eventType The type of event
-     * @param time The time the fire was reported
+     * @param time      The time the fire was reported
      */
     public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time) {
         this.latitude = latitude;
@@ -40,7 +40,7 @@ public class EventInfo {
         }
     }
 
-    public EventInfo(){
+    public EventInfo() {
         this.latitude = 100;
         this.longitude = 100;
         this.intensity = Intensity.MODERATE;
@@ -107,5 +107,13 @@ public class EventInfo {
      */
     public synchronized void assignDrone(Integer droneId) {
         this.droneAssigned = droneId;
+    }
+
+    public String toString() {
+        return String.format(
+                "EventInfo{location=(%d,%d), intensity=%s, eventType=%s, time=%s, remainingAgentRequired=%d, droneAssigned=%s}",
+                longitude, latitude, intensity.toString(), eventType.toString(), time.toString(),
+                remainingAgentRequired,
+                droneAssigned == null ? "False" : droneAssigned.toString());
     }
 }
