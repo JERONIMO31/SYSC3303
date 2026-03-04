@@ -19,7 +19,7 @@ public class GUI extends JFrame {
     private JTextField eventFileField;
     private JButton eventFileBrowseButton;
     private StandardizedTime standardTime;
-    private Drone drone;
+    private DroneSubsystem drone;
     private FireIncident fireIncident;
     private Scheduler scheduler;
     private EndCondition endCondition;
@@ -180,7 +180,7 @@ public class GUI extends JFrame {
         DroneInfo[] allDrones = droneTracker.getAllDrones();
         DroneInfo droneInfo = allDrones[0];
         droneTracker.markDroneAsReady(droneInfo.droneId);
-        drone = new Drone(droneInfo, droneTracker, endCondition, this);
+        drone = new DroneSubsystem(droneInfo, droneTracker, endCondition, this);
         droneThread = new Thread(drone);
         fireIncident = new FireIncident(fireTracker, zoneFile, eventFile, endCondition, standardTime, this);
         incidentThread = new Thread(fireIncident);

@@ -32,7 +32,7 @@ public class UnitTesting {
     @Test
     void testDroneLogic() {
         DroneInfo info = new DroneInfo(1);
-        Drone drone = new Drone(info, droneTracker, endCondition, gui);
+        DroneSubsystem drone = new DroneSubsystem(info, droneTracker, endCondition, gui);
 
         assertNotNull(drone);
         assertEquals(1, info.droneId);

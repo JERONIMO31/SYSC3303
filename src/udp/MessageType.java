@@ -3,7 +3,9 @@ package udp;
 public enum MessageType {
     INIT,
     NEW_INCIDENT,
-    ASSIGNMENT;
+    FIRE_EXTINGUISHED,
+    ASSIGNMENT,
+    AGENT_DEPLOYED;
 
     public static MessageType fromString(String str) {
         try {

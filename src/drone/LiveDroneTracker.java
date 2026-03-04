@@ -1,9 +1,11 @@
 package drone;
 
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 import event.EventInfo;
 import event.Intensity;
+import utils.StandardizedTime;
 
 public class LiveDroneTracker {
 
@@ -30,11 +32,12 @@ public class LiveDroneTracker {
      * @param totalDrones The total number of drones to manage
      */
     public LiveDroneTracker(int totalDrones, int agentCapacity, int speed, int acceleration, int deployRate,
-            int openNozzleTime) {
+            int openNozzleTime, StandardizedTime standardizedTime, Consumer<String> logger) {
         this.droneMap = new HashMap<>();
 
         for (int i = 0; i < totalDrones; i++) {
-            DroneInfo drone = new DroneInfo(i, agentCapacity, speed, acceleration, deployRate, openNozzleTime);
+            DroneInfo drone = new DroneInfo(i, agentCapacity, speed, acceleration, deployRate, openNozzleTime,
+                    standardizedTime, logger);
             this.droneMap.put(i, drone);
         }
     }
@@ -66,11 +69,20 @@ public class LiveDroneTracker {
         // lower-priority fire
         DroneInfo bestDrone = null;
         double bestDistance = Double.MAX_VALUE;
+        String requestedLocationKey = longitude + "," + latitude;
 
         for (DroneInfo drone : this.droneMap.values()) {
-            boolean eligible = drone.isAvailable()
-                    || (drone.getAssignedFire() != null
-                            && isLowerPriority(drone.getAssignedFire().intensity, firePriority));
+            EventInfo currentAssignedFire = drone.getAssignedFire();
+
+            if (currentAssignedFire != null && requestedLocationKey.equals(currentAssignedFire.getLocationKey())) {
+                return new DroneAssignment(drone, null);
+            }
+
+            boolean unassignedAndAvailable = currentAssignedFire == null && drone.isAvailableForFire();
+            boolean canReassign = currentAssignedFire != null
+                    && isLowerPriority(currentAssignedFire.intensity, firePriority);
+            boolean eligible = unassignedAndAvailable || canReassign;
+
             if (eligible) {
                 double distance = distanceTo(drone, longitude, latitude);
                 if (distance < bestDistance) {
@@ -85,8 +97,8 @@ public class LiveDroneTracker {
         }
 
         EventInfo displaced = bestDrone.getAssignedFire();
-        if (displaced != null) {
-            bestDrone.unassignFire();
+        if (displaced != null && requestedLocationKey.equals(displaced.getLocationKey())) {
+            displaced = null;
         }
         return new DroneAssignment(bestDrone, displaced);
     }
@@ -95,10 +107,8 @@ public class LiveDroneTracker {
      * Calculates distance from a drone's current position to a target location.
      */
     private double distanceTo(DroneInfo drone, int longitude, int latitude) {
-        String locKey = drone.getLocationKey(); // "(x,y)"
-        String[] parts = locKey.substring(1, locKey.length() - 1).split(",");
-        int dx = Integer.parseInt(parts[0]) - longitude;
-        int dy = Integer.parseInt(parts[1]) - latitude;
+        int dx = drone.getAccurateLongitude() - longitude;
+        int dy = drone.getAccurateLatitude() - latitude;
         return Math.sqrt(dx * dx + dy * dy);
     }
 

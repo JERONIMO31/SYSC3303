@@ -33,6 +33,21 @@ public class LiveFireTracker {
         this.fireQueue.add(fire);
     }
 
+    public void deployAgent(String fireLocationKey, int remainingAgent) {
+        EventInfo fire = this.firesBeingFought.get(fireLocationKey);
+        if (fire != null) {
+            fire.setAgent(remainingAgent);
+        }
+    }
+
+    public boolean isExtinguished(String fireLocationKey) {
+        EventInfo fire = this.firesBeingFought.get(fireLocationKey);
+        if (fire != null && fire.isExtinguished()) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Peeks at the highest-priority fire in the queue without removing it.
      * 
@@ -48,14 +63,30 @@ public class LiveFireTracker {
      * 
      * @return The highest-priority fire event, or null if the queue is empty
      */
-    public EventInfo assignNextFire() {
+    public void assignFire(int droneId, String locationKey) {
         if (this.fireQueue.isEmpty()) {
-            return null;
+            return;
         }
 
-        EventInfo fire = this.fireQueue.poll();
+        EventInfo fire = null;
+        if (locationKey != null && !locationKey.isEmpty()) {
+            for (EventInfo queuedFire : this.fireQueue) {
+                if (locationKey.equals(queuedFire.getLocationKey())) {
+                    fire = queuedFire;
+                    break;
+                }
+            }
+            if (fire != null) {
+                this.fireQueue.remove(fire);
+            }
+        }
+
+        if (fire == null) {
+            return;
+        }
+
         this.firesBeingFought.put(fire.getLocationKey(), fire);
-        return fire;
+        fire.assignDrone(droneId);
     }
 
     /**

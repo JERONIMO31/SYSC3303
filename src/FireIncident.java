@@ -47,7 +47,7 @@ public class FireIncident {
 
         try {
             this.socket = new DatagramSocket(FIRE_INCIDENT_PORT);
-            this.socket.setSoTimeout(100); // Set a timeout for receiving UDP messages
+            this.socket.setSoTimeout(1000); // Set a timeout for receiving UDP messages
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -94,6 +94,10 @@ public class FireIncident {
                         Integer.parseInt(message.getData("timeScale")));
                 this.gui.setStandardTime(this.standardTime);
                 this.readyToStart = true;
+                break;
+            case FIRE_EXTINGUISHED:
+                String locationKey = message.getData("locationKey");
+                gui.printMessage("Fire at " + locationKey + " has been extinguished.");
                 break;
             default:
                 gui.printMessage("Unknown message type: " + message.type);
@@ -239,20 +243,19 @@ public class FireIncident {
                                     + " at time " + fire.time + ".");
                     sendEventInfo(fire);
                 }
-            }
-            try {
-                if (eventMap.isEmpty()) {
-                    Thread.sleep(1000);
-                    continue;
+                if (!eventMap.isEmpty()) {
+                    try {
+                        nextEventTime = eventMap.firstKey();
+                        long timeToNextFire = java.time.Duration.between(currentTime, nextEventTime).toMillis();
+                        if (timeToNextFire > 0) {
+                            Thread.sleep(Math.min(timeToNextFire, 1000));
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-                LocalTime nextEventTime = eventMap.firstKey();
-                long timeToNextFire = java.time.Duration.between(currentTime, nextEventTime).toMillis();
-                if (timeToNextFire > 0) {
-                    Thread.sleep(Math.min(timeToNextFire, 1000));
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
             }
+            receiveUDPMessage();
         }
     }
 

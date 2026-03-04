@@ -22,11 +22,33 @@ public class EventInfo {
      * @param time      The time the fire was reported
      */
     public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time) {
+        this(latitude, longitude, intensity, eventType, time, null);
+    }
+
+    /**
+     * Constructs a new EventInfo representing a fire event with an optional
+     * explicit remaining agent requirement.
+     * If agentRequired is null, defaults are derived from intensity.
+     * 
+     * @param latitude      The latitude coordinate of the fire
+     * @param longitude     The longitude coordinate of the fire
+     * @param intensity     The intensity level of the fire (LOW, MODERATE, HIGH)
+     * @param eventType     The type of event
+     * @param time          The time the fire was reported
+     * @param agentRequired Optional remaining agent requirement in liters
+     */
+    public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time,
+            Integer agentRequired) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.intensity = intensity;
         this.eventType = eventType;
         this.time = time;
+        if (agentRequired != null) {
+            this.remainingAgentRequired = Math.max(0, agentRequired);
+            return;
+        }
+
         switch (intensity) {
             case HIGH:
                 this.remainingAgentRequired = 30;
@@ -62,7 +84,7 @@ public class EventInfo {
      * 
      * @return true if no more agent is required, false otherwise
      */
-    public synchronized boolean isExtinguished() {
+    public boolean isExtinguished() {
         return this.remainingAgentRequired <= 0;
     }
 
@@ -72,7 +94,7 @@ public class EventInfo {
      * @param amount The amount of agent to apply in liters
      * @return The actual amount of agent used
      */
-    public synchronized int applyAgent(int amount) {
+    public int applyAgent(int amount) {
         if (amount > this.remainingAgentRequired) {
             int used = this.remainingAgentRequired;
             this.remainingAgentRequired = 0;
@@ -82,12 +104,16 @@ public class EventInfo {
         return amount;
     }
 
+    public void setAgent(int amount) {
+        this.remainingAgentRequired = amount;
+    }
+
     /**
      * Gets the remaining agent required to extinguish the fire.
      * 
      * @return The remaining agent amount in liters
      */
-    public synchronized int getRemainingAgentRequired() {
+    public int getRemainingAgentRequired() {
         return this.remainingAgentRequired;
     }
 
@@ -96,7 +122,7 @@ public class EventInfo {
      * 
      * @return true if a drone is assigned, false otherwise
      */
-    public synchronized boolean hasDroneAssigned() {
+    public boolean hasDroneAssigned() {
         return this.droneAssigned != null;
     }
 
@@ -105,7 +131,7 @@ public class EventInfo {
      * 
      * @param droneId The ID of the drone to assign, or null to unassign
      */
-    public synchronized void assignDrone(Integer droneId) {
+    public void assignDrone(Integer droneId) {
         this.droneAssigned = droneId;
     }
 

@@ -18,7 +18,7 @@ public class FireIncidentGUI extends JFrame {
     private Thread fireIncidentThread;
 
     public FireIncidentGUI() {
-        setTitle("Fire Fighting Drone Simulation");
+        setTitle("FireIncident");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout());
         JPanel textPanel = new JPanel();
