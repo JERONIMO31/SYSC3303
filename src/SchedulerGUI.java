@@ -2,7 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import utils.StandardizedTime;
 
-public class SchedularGUI extends JFrame {
+public class SchedulerGUI extends JFrame {
     private JTextArea textArea;
     private JButton startButton;
     private JButton stopButton;
@@ -11,7 +11,7 @@ public class SchedularGUI extends JFrame {
     private Thread schedulerThread;
     private StandardizedTime standardTime;
 
-    public SchedularGUI() {
+    public SchedulerGUI() {
         setTitle("Scheduler");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout());
@@ -144,7 +144,7 @@ public class SchedularGUI extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            SchedularGUI gui = new SchedularGUI();
+            SchedulerGUI gui = new SchedulerGUI();
             gui.setVisible(true);
         });
     }

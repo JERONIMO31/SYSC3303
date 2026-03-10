@@ -71,6 +71,10 @@ public class LiveDroneTracker {
         double bestDistance = Double.MAX_VALUE;
         String requestedLocationKey = longitude + "," + latitude;
 
+        /* Determines the best drone for the job with the prioritization:
+        1. Unassigned drone with identical lat and long to the fire.
+        2. Nearest drone which is either unassigned, or is assigned to a lower-priority fire.
+        * */
         for (DroneInfo drone : this.droneMap.values()) {
             EventInfo currentAssignedFire = drone.getAssignedFire();
 

@@ -17,13 +17,13 @@ public class Scheduler {
     private boolean fireIncidentConnected = false;
     private boolean droneSubsystemConnected = false;
     private StandardizedTime standardTime;
-    private SchedularGUI gui;
+    private SchedulerGUI gui;
 
     /**
      * Constructs a new Scheduler, creating its own FireTracker, DroneTracker, and
      * GUI.
      */
-    public Scheduler(int timeScale, SchedularGUI gui) {
+    public Scheduler(int timeScale, SchedulerGUI gui) {
         this.gui = gui;
         this.fireTracker = new LiveFireTracker();
         try {

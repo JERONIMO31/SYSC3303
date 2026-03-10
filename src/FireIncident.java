@@ -33,7 +33,6 @@ public class FireIncident {
      * 
      * @param zoneFilePath  Path to the CSV file containing zone definitions
      * @param eventFilePath Path to the CSV file containing fire events
-     * @param standardTime  The standardized time system for the simulation
      * @param gui           The GUI for printing status messages and errors
      */
     public FireIncident(String zoneFilePath, String eventFilePath, FireIncidentGUI gui) {
