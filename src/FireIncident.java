@@ -15,6 +15,7 @@ import zones.Zone;
 import zones.ZoneReader;
 
 import java.net.*;
+import java.util.stream.Collectors;
 
 public class FireIncident {
 
@@ -85,14 +86,27 @@ public class FireIncident {
     private void handleMessage(Message message) {
         switch (message.type) {
             case INIT:
-                if (this.readyToStart) {
-                    gui.printMessage("Received duplicate INIT message, ignoring.");
-                    return;
+                String who = message.getData("sender");
+                if (who.equals("GUISubsystem")){
+                    Message zoneMessage = new Message(MessageType.INIT);
+                    String zoneString = zoneMap.values().stream().map(Zone::UDPString).collect(Collectors.joining("-"));
+                    zoneMessage.setData("zoneData", zoneString);
+                    zoneMessage.setData("sender", "FireIncident");
+                    sendMessage(zoneMessage, GUISubsystem.GUI_SUBSYSTEM_PORT);
                 }
-                this.standardTime = new StandardizedTime(LocalTime.parse(message.getData("startTime")),
-                        Integer.parseInt(message.getData("timeScale")));
-                this.gui.setStandardTime(this.standardTime);
-                this.readyToStart = true;
+                else if (who.equals("Scheduler")){
+                    if (this.readyToStart) {
+                        gui.printMessage("Received duplicate INIT message, ignoring.");
+                        return;
+                    }
+                    this.standardTime = new StandardizedTime(LocalTime.parse(message.getData("startTime")),
+                            Integer.parseInt(message.getData("timeScale")));
+                    this.gui.setStandardTime(this.standardTime);
+                    this.readyToStart = true;
+                }
+                else {
+                    gui.printMessage("Received INIT message from unknown sender, ignoring.");
+                }
                 break;
             case FIRE_EXTINGUISHED:
                 String locationKey = message.getData("locationKey");
@@ -162,6 +176,7 @@ public class FireIncident {
     public void readZoneFile(String zoneFilePath) {
         this.zoneMap = new HashMap<>();
         BufferedReader zoneReader = null;
+
         try {
             zoneReader = new BufferedReader(new FileReader(zoneFilePath));
             zoneReader.readLine(); // Skip header

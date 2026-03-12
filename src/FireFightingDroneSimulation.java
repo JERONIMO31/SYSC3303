@@ -12,8 +12,8 @@ public class FireFightingDroneSimulation {
      * @param args Command line arguments (not used)
      */
     public static void main(String[] args) {
-        GUI gui = new GUI();
+        //GUI gui = new GUI();
         //GridWithLegend w = new GridWithLegend();
-        gui.setVisible(true);
+        //gui.setVisible(true);
     }
 }

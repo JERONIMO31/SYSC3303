@@ -16,6 +16,7 @@ public class Scheduler {
     private DatagramSocket socket;
     private boolean fireIncidentConnected = false;
     private boolean droneSubsystemConnected = false;
+    private boolean GUISubsystemConnected = false;
     private StandardizedTime standardTime;
     private SchedulerGUI gui;
 
@@ -34,7 +35,7 @@ public class Scheduler {
         }
 
         gui.printMessage("Schedular waiting for connection from other subsystems...");
-        while ((!fireIncidentConnected || !droneSubsystemConnected) && !Thread.currentThread().isInterrupted()) {
+        while ((!fireIncidentConnected || !droneSubsystemConnected || !GUISubsystemConnected) && !Thread.currentThread().isInterrupted()) {
             receiveUDPMessage();
         }
 
@@ -46,6 +47,7 @@ public class Scheduler {
         gui.setStandardTime(this.standardTime);
         sendInitMessage(FireIncident.FIRE_INCIDENT_PORT);
         sendInitMessage(DroneSubsystem.DRONE_SUBSYSTEM_PORT);
+        sendInitMessage(GUISubsystem.GUI_SUBSYSTEM_PORT);
         gui.printMessage("Scheduler initialized and starting main loop...");
     }
 
@@ -88,7 +90,14 @@ public class Scheduler {
                     if (this.standardTime != null) {
                         sendInitMessage(DroneSubsystem.DRONE_SUBSYSTEM_PORT);
                     }
-                } else {
+                } else if (who.equals("GUISubsystem")) {
+                    gui.printMessage("GUISubsystem connected.");
+                    GUISubsystemConnected = true;
+                    if (this.standardTime != null) {
+                        sendInitMessage(GUISubsystem.GUI_SUBSYSTEM_PORT);
+                    }
+                }
+                else {
                     gui.printMessage("Unknown sender in INIT message: " + who);
                 }
                 break;
@@ -115,6 +124,10 @@ public class Scheduler {
                 } catch (Exception ex) {
                     gui.printMessage("Invalid NEW_INCIDENT message: " + ex.getMessage());
                 }
+
+                //Only forwarding after everything else to reduce errors
+                forwardMessage(message, GUISubsystem.GUI_SUBSYSTEM_PORT);
+
                 break;
             case ASSIGNMENT:
                 try {
@@ -136,6 +149,9 @@ public class Scheduler {
                 } catch (Exception ex) {
                     gui.printMessage("Invalid ASSIGNMENT message: " + ex.getMessage());
                 }
+
+                forwardMessage(message, GUISubsystem.GUI_SUBSYSTEM_PORT);
+
                 break;
             case AGENT_DEPLOYED:
                 try {
@@ -158,7 +174,9 @@ public class Scheduler {
                         Message extinguishedMessage = new Message(MessageType.FIRE_EXTINGUISHED);
                         extinguishedMessage.setData("locationKey", deployedLocationKey);
                         sendMessage(extinguishedMessage, FireIncident.FIRE_INCIDENT_PORT);
+                        forwardMessage(extinguishedMessage, GUISubsystem.GUI_SUBSYSTEM_PORT);
                     } else {
+                        forwardMessage(message, GUISubsystem.GUI_SUBSYSTEM_PORT);
                         gui.printMessage(
                                 "Fire at (" + deployedLocationKey + ") is still active after agent deployment.");
                         fireTracker.requeueFire(deployedLocationKey);
@@ -170,6 +188,11 @@ public class Scheduler {
             default:
                 gui.printMessage("Unknown message type: " + message.type);
         }
+    }
+
+    private void forwardMessage(Message message, int port) {
+        gui.printMessage("Forwarding message from: " + message.getData("sender") + " to " + port);
+        sendMessage(message, port);
     }
 
     private void sendMessage(Message message, int port) {

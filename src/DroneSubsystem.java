@@ -126,6 +126,7 @@ public class DroneSubsystem {
                                 + reassignedFire.getLocationKey() + ") to (" + fire.getLocationKey() + ").");
                     }
                     sendMessage(response, Scheduler.SCHEDULER_PORT);
+                    //sendMessage(response, GUISubsystem.GUI_SUBSYSTEM_PORT);
                     gui.printMessage("Sent assignment response: drone " + assignedDrone.droneId + " -> fire ("
                             + fire.getLocationKey() + ").");
                 } else {
