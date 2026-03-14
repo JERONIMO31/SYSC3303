@@ -12,8 +12,9 @@ public class FireFightingDroneSimulation {
      * @param args Command line arguments (not used)
      */
     public static void main(String[] args) {
-        //GUI gui = new GUI();
-        //GridWithLegend w = new GridWithLegend();
-        //gui.setVisible(true);
+        DroneSubsystemGUI.main(args);
+        FireIncidentGUI.main(args);
+        SchedulerGUI.main(args);
+        GUI.main(args);
     }
 }

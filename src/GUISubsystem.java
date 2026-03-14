@@ -30,6 +30,8 @@ public class GUISubsystem {
 
         this.gui = gui;
 
+        this.zoneMap = new HashMap<>();
+
         try {
             this.socket = new DatagramSocket(GUI_SUBSYSTEM_PORT);
             this.socket.setSoTimeout(1000);
@@ -70,9 +72,8 @@ public class GUISubsystem {
         String[] zoneStrings = zonesString.split("-");
         for  (String zoneString : zoneStrings) {
             int id = Integer.parseInt(zoneString.split(":")[0]);
-            Integer[] coords = (Integer[]) Arrays.stream(zoneString.split(":")[1].split(",")).map(Integer::parseInt).toArray();
+            int[] coords = Arrays.stream(zoneString.split(":")[1].split(",")).mapToInt(Integer::parseInt).toArray();
             Zone z = new Zone(id, coords[0], coords[1], coords[2], coords[3]);
-            System.out.println("New Zone Parsed: " + z);
             zoneMap.put(id, z);
         }
     }
@@ -86,13 +87,12 @@ public class GUISubsystem {
                     break;
                 }
                 else if (who.equals("FireIncident")){
-                    System.out.println(message.getData("zoneData"));
                     try {
                         parseZoneString(zoneMap, message.getData("zoneData"));
                         contactedFireIncident = true;
                     }
                     catch (Exception e) {
-                        //Handle that
+                        System.out.println("Zone parsing failure");
                     }
                 }
                 else if (who.equals("Scheduler")){

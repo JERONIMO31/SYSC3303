@@ -82,6 +82,7 @@ public class Scheduler {
                     fireIncidentConnected = true;
                     gui.printMessage("FireIncident subsystem connected.");
                     if (this.standardTime != null) {
+                        gui.printMessage("Standard time is somehow not null?");
                         sendInitMessage(FireIncident.FIRE_INCIDENT_PORT);
                     }
                 } else if (who.equals("DroneSubsystem")) {

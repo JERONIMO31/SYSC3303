@@ -5,14 +5,16 @@ import java.util.ArrayList;
 public class GUI extends JFrame {
 
 
-    private GUISubsystem subsystem;
+    private static GUISubsystem subsystem;
 
     public GUI(int width, int height){
         subsystem = new GUISubsystem(this);
-
+        setLayout( new GridLayout(2, 1, 10, 0));
         Grid grid = new Grid(10, 10, 10, 10);
+        InfoPanel info = new InfoPanel();
 
         add(grid);
+        add(info);
 
         pack();
 
@@ -50,8 +52,26 @@ public class GUI extends JFrame {
         }
     }
 
+    public class InfoPanel extends JPanel {
+        // Okay what do I want to do
+        // I want a list of all the drones for their statuses
+        // I guess a list of events (or a list of zones? discuss)
+        // Aaaaaaand
+        // I think really that's about it
+        //I guess maybe I could show the time too?
+        public InfoPanel(){
+            setLayout(new GridLayout(1, 3));
+
+        }
+    }
+
+    public void updateGrid(){
+
+    }
+
     public static void main(String[] args){
-        new GUI(600, 400);
-        //subsystem.mainLoop();
+        GUI gui = new GUI(600, 400);
+        gui.setVisible(true);
+        subsystem.mainLoop();
     }
 }
