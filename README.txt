@@ -1,73 +1,95 @@
-1. FILE DESCRIPTIONS
+FILE DESCRIPTIONS
 
-- FireFightingDroneSimulation.java: Main entry point that creates and 
-  displays the simulation GUI window.
-- GUI.java: Builds the Swing interface, handles file browsing/start-stop 
-  controls, and coordinates simulation threads.
-- Drone.java: Drone worker thread that travels to assigned fires, deploys 
-  suppression agent, returns home, and refills.
-- FireIncident.java: Reads event CSV data, schedules fire reports by 
-  simulation time, and publishes fires to the live tracker.
-- Scheduler.java: Continuously matches available drones to active fires and 
-  updates fire assignment status.
-- GridPanel.java: Custom map grid renderer that draws cells, zones, and 
-  markers for events/drone positions.
-- GridWithLegend.java: Container panel combining the grid and legend into 
-  the visualization shown in the GUI.
-- LegendPanel.java: Side legend panel listing color-coded map symbols used 
-  by the simulation display.
-- utils/DroneInfo.java: Thread-safe drone state/model (assignment, location, 
-  travel timing, and available agent tracking).
-- utils/EndCondition.java: Shared synchronized stop flag used by all threads 
-  to end the simulation cleanly.
-- utils/EventInfo.java: Fire event model containing location, intensity, 
-  event type, assigned drone, and remaining agent required.
-- utils/EventType.java: Enum of supported event categories used when parsing 
-  event input data.
-- utils/Intensity.java: Enum of fire intensity levels (LOW, MODERATE, HIGH).
-- utils/LiveDroneTracker.java: Shared tracker managing ready/busy drone sets 
-  and lookup of active drone objects.
-- utils/LiveFireTracker.java: Shared tracker for queued fires, fires being 
-  fought, and extinguished fire lifecycle updates.
-- utils/standardizedTime.java: Provides relative simulation time based on 
-  real start time for consistent event scheduling/logging.
-- utils/Zone.java: Zone model storing boundary coordinates, computed center 
-  point, and zone identity metadata.
-- utils/ZoneReader.java: CSV parser/loader that reads zone definitions and 
-  builds the zone map used by the simulation.
+DroneSubsystemGUI.java: Swing-based GUI used to configure and start the drone subsystem. Allows the user to specify drone parameters such as speed, acceleration, and agent capacity, and displays subsystem logs.
 
+FireIncidentGUI.java: GUI interface used to start the fire incident subsystem. Allows the user to load zone and event CSV files and start the simulation that generates fire incidents.
 
-2. SETUP & RUN INSTRUCTIONS
+SchedulerGUI.java: GUI interface used to configure and run the scheduler subsystem. Allows the user to specify the simulation time scale and displays scheduler messages.
 
-To run the simulation, follow these steps in IntelliJ:
+GUISubsystem.java: Networking subsystem responsible for communicating between the GUI and other subsystems (Scheduler and FireIncident) using UDP messages. Handles initialization messages and parses zone data received from FireIncident.
 
-RUN THE APPLICATION: 
-   Open 'FireFightingDroneSimulation.java' and click the green Play 
-   icon (Run). A window titled "Fire Fighting Drone 
-   Simulation" will appear.
+Scheduler.java: Core scheduling subsystem that coordinates drone assignments to fire incidents and manages simulation time.
 
-LOAD ZONE DATA: 
-   In the GUI, click "Browse" next to the "Zone File" bar. 
-   Navigate to the 'SYSC3303' folder and select:
-   -> sample_zone_file.csv
+FireIncident.java: Reads event data from input files and generates fire incidents during the simulation timeline.
 
-LOAD EVENT DATA: 
-   Click "Browse" next to the "Event File" bar. 
-   Navigate to the 'SYSC3303' folder and select:
-   -> sample_event_file.csv
+drone/LiveDroneTracker.java: Tracks all drones in the system, including available and assigned drones, and provides lookup and assignment functionality.
 
-START: 
-   Click the "Start" button to begin the simulation.
+utils/DroneInfo.java: Represents the state of an individual drone including its location, assignment status, and operational timing.
 
-3. TEST DATA REQUIREMENTS
+utils/EventInfo.java: Model representing a fire event including its location, type, intensity, and timestamp.
 
-The simulation requires both files to work correctly:
-- Zone File: Must contain the coordinates and IDs of the areas 
-  the drones monitor.
-- Event File: Must contain timestamps, Zone IDs, fire types, and 
-  intensity levels.
+utils/EventType.java: Enumeration representing different types of fire-related events that can occur in the simulation.
 
+utils/Intensity.java: Enumeration defining fire intensity levels such as LOW, MODERATE, and HIGH.
 
-4. WORK BREAKDOWN (Iteration 2)
+utils/LiveFireTracker.java: Maintains queues of active fires, fires currently being fought, and extinguished fires during the simulation.
 
-Simon D'Amato: Updated README and UML class and sequence diagrams.
+utils/StandardizedTime.java: Provides a standardized simulation time system. Converts real-world time into simulation time using a configurable time scale.
+
+zones/Zone.java: Represents a geographic monitoring zone defined by rectangular coordinate boundaries.
+
+zones/ZoneReader.java: Reads and parses zone definitions from a CSV file and builds a map of zone objects used in the simulation.
+
+udp/Message.java: Encapsulates UDP communication messages exchanged between subsystems. Handles serialization and deserialization of message data.
+
+udp/MessageType.java: Enumeration defining all supported message types used in subsystem communication (INIT, NEW_INCIDENT, FIRE_EXTINGUISHED, ASSIGNMENT, AGENT_DEPLOYED).
+
+SETUP & RUN INSTRUCTIONS
+
+To run the system, follow these steps in IntelliJ:
+
+RUN THE SUBSYSTEM GUIs:
+Each subsystem can be started through its GUI class.
+
+Run SchedulerGUI.java
+
+Run FireIncidentGUI.java
+
+Run DroneSubsystemGUI.java
+
+Each subsystem will open its own window and wait for initialization messages from the other subsystems.
+
+LOAD ZONE DATA:
+In the FireIncident GUI, click "Browse" next to the Zone File field and select the zone CSV file.
+
+LOAD EVENT DATA:
+Click "Browse" next to the Event File field and select the event CSV file containing fire incidents.
+
+CONFIGURE PARAMETERS:
+In the DroneSubsystem GUI, configure drone parameters such as:
+
+Total number of drones
+
+Agent capacity
+
+Speed
+
+Acceleration
+
+Deploy rate
+
+Nozzle open time
+
+START THE SIMULATION:
+Press the "Start" button in each subsystem GUI. The subsystems will connect via UDP and begin exchanging messages to run the simulation.
+
+TEST DATA REQUIREMENTS
+
+The simulation requires the following input files:
+
+Zone File:
+A CSV file containing zone IDs and coordinate boundaries used to define monitoring regions.
+
+Event File:
+A CSV file containing timestamps, zone IDs, event types, and intensity levels used to generate fire incidents during the simulation.
+
+SYSTEM COMMUNICATION
+
+The subsystems communicate using UDP sockets and the Message / MessageType classes.
+Initialization messages are exchanged when the subsystems start to ensure that all components are connected before the simulation begins.
+
+WORK BREAKDOWN:
+Simon D'Amato: I3 Coding
+Nicolaus Derikx: I3 Coding 
+Anitsan Robert: UML Class Diagram and Updated README.txt
+Jeronimo Cumming: Unit Testing
