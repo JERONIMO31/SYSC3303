@@ -1,4 +1,6 @@
+import drone.DroneInfo;
 import drone.LiveDroneTracker;
+import event.EventInfo;
 import udp.Message;
 import udp.MessageType;
 import utils.StandardizedTime;
@@ -24,13 +26,19 @@ public class GUISubsystem {
     private boolean contactedScheduler = false;
     public static final int GUI_SUBSYSTEM_PORT = 4567;
 
+    private int maxWidth;
+    private int maxHeight;
+
     private HashMap<Integer, Zone> zoneMap;
+    private HashMap<String, String> droneMap;
+    private ArrayList<String[]> events;
 
     public GUISubsystem(GUI gui){
-
         this.gui = gui;
-
+        this.maxHeight = 0;
+        this.maxWidth = 0;
         this.zoneMap = new HashMap<>();
+        this.events = new ArrayList<>();
 
         try {
             this.socket = new DatagramSocket(GUI_SUBSYSTEM_PORT);
@@ -73,6 +81,14 @@ public class GUISubsystem {
         for  (String zoneString : zoneStrings) {
             int id = Integer.parseInt(zoneString.split(":")[0]);
             int[] coords = Arrays.stream(zoneString.split(":")[1].split(",")).mapToInt(Integer::parseInt).toArray();
+            for (int i = 0; i < 4; i ++) {
+                if (i % 2 == 0 && coords[i] > maxWidth){
+                    maxWidth = coords[i];
+                }
+                else if (i % 2 == 1 && coords[i] > maxHeight){
+                    maxHeight = coords[i];
+                }
+            }
             Zone z = new Zone(id, coords[0], coords[1], coords[2], coords[3]);
             zoneMap.put(id, z);
         }
@@ -100,6 +116,35 @@ public class GUISubsystem {
                 }
                 break;
             case NEW_INCIDENT:
+                String latitudeText = message.getData("latitude");
+                String longitudeText = message.getData("longitude");
+                String intensityText = message.getData("intensity");
+                String eventTypeText = message.getData("eventType");
+                String[] incident_strings = {eventTypeText, latitudeText, longitudeText, intensityText};
+                events.add(incident_strings);
+                gui.updateEvent(events);
+                gui.updateGrid();
+                break;
+            case ASSIGNMENT:
+                try {
+                    String droneIdText = message.getData("droneId");
+                    String locationKey = message.getData("locationKey");
+                    if (droneIdText == null || locationKey == null || locationKey.trim().isEmpty()) {
+                        System.out.println("ASSIGNMENT message missing required fields, ignoring.");
+                        break;
+                    }
+
+                    droneMap.put(droneIdText, locationKey);
+                    String unassignedFire = message.getData("unassignedFire");
+                    if (unassignedFire != null && !unassignedFire.isEmpty()) {
+
+                        //gui.printMessage("Drone assigned to fire at (" + unassignedFire + ") was reassigned.");
+                        //fireTracker.requeueFire(unassignedFire);
+                    }
+                    gui.updateDrones(droneMap);
+                } catch (Exception ex) {
+                    //gui.printMessage("Invalid ASSIGNMENT message: " + ex.getMessage());
+                }
                 break;
             case FIRE_EXTINGUISHED:
                 break;
@@ -108,6 +153,19 @@ public class GUISubsystem {
             default:
                 //gui.printMessage("Unknown message type: " + message.type);
         }
+    }
+
+    public int[] getMaxDimensions(){
+        return new int[]{maxWidth, maxHeight};
+    }
+
+
+    public ArrayList<DroneInfo> getDroneList(){
+        return new ArrayList<>();
+    }
+
+    public ArrayList<EventInfo> getEventList(){
+        return new ArrayList<>();
     }
 
     private void sendMessage(Message message, int port) {

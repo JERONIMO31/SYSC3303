@@ -1,30 +1,44 @@
+import drone.DroneInfo;
+import event.EventInfo;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class GUI extends JFrame {
 
 
     private static GUISubsystem subsystem;
 
-    public GUI(int width, int height){
-        subsystem = new GUISubsystem(this);
-        setLayout( new GridLayout(2, 1, 10, 0));
-        Grid grid = new Grid(10, 10, 10, 10);
-        InfoPanel info = new InfoPanel();
+    private InfoPanel infoPanel;
 
-        add(grid);
-        add(info);
+    private Grid gridPanel;
+
+    public GUI(int width, int height, int cellSize){
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setTitle("Fire Fighting Drone Simulator GUI");
+        subsystem = new GUISubsystem(this);
+        //Change to a GridBag Later
+        setLayout(new GridLayout(1, 2, 10, 0));
+        int[] maxDimensions = subsystem.getMaxDimensions();
+        gridPanel = new Grid(maxDimensions[0]/cellSize, maxDimensions[1]/cellSize, cellSize, cellSize);
+        infoPanel = new InfoPanel(subsystem.getDroneList(), subsystem.getEventList());
+
+        add(gridPanel);
+        add(infoPanel);
+
+        setMinimumSize(new Dimension(width, height));
 
         pack();
-
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
     }
 
     public class Grid extends JPanel {
         /**
          * A JPanel containing a grid of cells, the reference to which are stored in
-         * a two-dimensional ArrayList
+         * a two-dimensional ArrayList.
          *
          @param gridWidth The number of cells in the width of the grid
          @param gridHeight The number of cells in the height of the grid
@@ -35,7 +49,7 @@ public class GUI extends JFrame {
         public ArrayList<ArrayList<JPanel>> cellList;
         public Grid(int gridWidth, int gridHeight, int cellWidth, int cellHeight){
             setLayout(new GridLayout(gridWidth, gridHeight, 0, 0));
-            cellList = new ArrayList<ArrayList<JPanel>>();
+            cellList = new ArrayList<>();
             for (int i = 0; i < gridWidth; i++) {
                 ArrayList<JPanel> tempList = new ArrayList<>();
                 for (int j = 0; j < gridHeight; j++) {
@@ -45,7 +59,9 @@ public class GUI extends JFrame {
                             return new Dimension(cellWidth, cellHeight);
                         }
                     };
+                    cell.setBorder(BorderFactory.createLineBorder(Color.black));
                     tempList.add(cell);
+                    add(cell);
                 }
                 cellList.add(i, new ArrayList<>());
             }
@@ -59,9 +75,51 @@ public class GUI extends JFrame {
         // Aaaaaaand
         // I think really that's about it
         //I guess maybe I could show the time too?
-        public InfoPanel(){
-            setLayout(new GridLayout(1, 3));
+        private JPanel DronePanel;
+        private JPanel EventPanel;
+        public InfoPanel(ArrayList<DroneInfo> drones, ArrayList<EventInfo> events){
+            setLayout(new GridLayout(2, 1));
+            DronePanel = new JPanel();
+            EventPanel = new JPanel();
+            DronePanel.setLayout(new BoxLayout(DronePanel, BoxLayout.Y_AXIS));
+            EventPanel.setLayout(new BoxLayout(EventPanel, BoxLayout.Y_AXIS));
+            add(new JScrollPane(DronePanel));
+            add(new JScrollPane(EventPanel));
+            JLabel dptitle = new JLabel("Events");
+            JLabel eptitle = new JLabel("Drones");
+            DronePanel.add(dptitle);
+            EventPanel.add(eptitle);
+        }
 
+        public void updateDronePanel(HashMap<String, String> droneMap){
+            DronePanel.removeAll();
+            for (String droneId : droneMap.keySet()){
+                JPanel droneContainer = new JPanel();
+                JLabel droneName = new JLabel("Drone "+droneId);
+                JLabel droneLocation = new JLabel("("+droneMap.get(droneId)+")");
+                droneContainer.add(droneName);
+                droneContainer.add(droneLocation);
+                droneContainer.setBorder(BorderFactory.createLineBorder(Color.black));
+                DronePanel.add(droneContainer);
+            }
+            pack();
+        }
+
+        public void updateEventPanel(ArrayList<String[]> events){
+            EventPanel.removeAll();
+            for (String[] event : events){
+                System.out.println("Adding event " + Arrays.toString(event));
+                JPanel eventContainer = new JPanel();
+                JLabel eventType = new JLabel(event[0]);
+                JLabel eventLocation = new JLabel(event[1]+","+event[2]);
+                JLabel eventSeverity = new JLabel(event[3]);
+                eventContainer.add(eventType);
+                eventContainer.add(eventLocation);
+                eventContainer.add(eventSeverity);
+                eventContainer.setBorder(BorderFactory.createLineBorder(Color.black));
+                DronePanel.add(eventContainer);
+            }
+            pack();
         }
     }
 
@@ -69,8 +127,18 @@ public class GUI extends JFrame {
 
     }
 
+    public void updateDrones(HashMap<String, String> droneMap){
+        infoPanel.updateDronePanel(droneMap);
+        pack();
+    }
+
+    public void updateEvent(ArrayList<String[]> events){
+        infoPanel.updateEventPanel(events);
+        pack();
+    }
+
     public static void main(String[] args){
-        GUI gui = new GUI(600, 400);
+        GUI gui = new GUI(800, 500, 10);
         gui.setVisible(true);
         subsystem.mainLoop();
     }
