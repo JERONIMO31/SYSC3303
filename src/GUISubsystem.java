@@ -121,7 +121,7 @@ public class GUISubsystem {
                 String intensityText = message.getData("intensity");
                 String eventTypeText = message.getData("eventType");
                 String[] incident_strings = {eventTypeText, latitudeText, longitudeText, intensityText};
-                events.add(incident_strings);
+                events.add(0, incident_strings);
                 gui.updateEvent(events);
                 gui.updateGrid();
                 break;

@@ -77,24 +77,28 @@ public class GUI extends JFrame {
         //I guess maybe I could show the time too?
         private JPanel DronePanel;
         private JPanel EventPanel;
+        private JLabel dptitle;
+        private JLabel eptitle;
         public InfoPanel(ArrayList<DroneInfo> drones, ArrayList<EventInfo> events){
             setLayout(new GridLayout(2, 1));
             DronePanel = new JPanel();
             EventPanel = new JPanel();
             DronePanel.setLayout(new BoxLayout(DronePanel, BoxLayout.Y_AXIS));
             EventPanel.setLayout(new BoxLayout(EventPanel, BoxLayout.Y_AXIS));
-            add(new JScrollPane(DronePanel));
-            add(new JScrollPane(EventPanel));
-            JLabel dptitle = new JLabel("Events");
-            JLabel eptitle = new JLabel("Drones");
+            dptitle = new JLabel("Events");
+            eptitle = new JLabel("Drones");
             DronePanel.add(dptitle);
             EventPanel.add(eptitle);
+            add(new JScrollPane(DronePanel));
+            add(new JScrollPane(EventPanel));
         }
 
         public void updateDronePanel(HashMap<String, String> droneMap){
             DronePanel.removeAll();
+            DronePanel.add(dptitle);
             for (String droneId : droneMap.keySet()){
                 JPanel droneContainer = new JPanel();
+                droneContainer.setLayout(new BoxLayout(droneContainer, BoxLayout.Y_AXIS));
                 JLabel droneName = new JLabel("Drone "+droneId);
                 JLabel droneLocation = new JLabel("("+droneMap.get(droneId)+")");
                 droneContainer.add(droneName);
@@ -102,14 +106,15 @@ public class GUI extends JFrame {
                 droneContainer.setBorder(BorderFactory.createLineBorder(Color.black));
                 DronePanel.add(droneContainer);
             }
-            pack();
+            //pack();
         }
 
         public void updateEventPanel(ArrayList<String[]> events){
             EventPanel.removeAll();
+            EventPanel.add(eptitle);
             for (String[] event : events){
-                System.out.println("Adding event " + Arrays.toString(event));
                 JPanel eventContainer = new JPanel();
+                eventContainer.setLayout(new BoxLayout(eventContainer, BoxLayout.Y_AXIS));
                 JLabel eventType = new JLabel(event[0]);
                 JLabel eventLocation = new JLabel(event[1]+","+event[2]);
                 JLabel eventSeverity = new JLabel(event[3]);
@@ -117,9 +122,9 @@ public class GUI extends JFrame {
                 eventContainer.add(eventLocation);
                 eventContainer.add(eventSeverity);
                 eventContainer.setBorder(BorderFactory.createLineBorder(Color.black));
-                DronePanel.add(eventContainer);
+                EventPanel.add(eventContainer);
             }
-            pack();
+            //pack();
         }
     }
 
@@ -129,12 +134,16 @@ public class GUI extends JFrame {
 
     public void updateDrones(HashMap<String, String> droneMap){
         infoPanel.updateDronePanel(droneMap);
-        pack();
+        revalidate();
+        repaint();
+        //pack();
     }
 
     public void updateEvent(ArrayList<String[]> events){
         infoPanel.updateEventPanel(events);
-        pack();
+        revalidate();
+        repaint();
+        //pack();
     }
 
     public static void main(String[] args){
