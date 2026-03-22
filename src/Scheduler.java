@@ -4,7 +4,9 @@ import java.time.LocalTime;
 
 import event.EventInfo;
 import event.EventType;
+import event.FaultSeverity;
 import event.Intensity;
+import event.FaultType;
 import event.LiveFireTracker;
 import udp.*;
 import utils.StandardizedTime;
@@ -19,6 +21,7 @@ public class Scheduler {
     private boolean GUISubsystemConnected = false;
     private StandardizedTime standardTime;
     private SchedulerGUI gui;
+    private static final int SOFT_FAULT_DOWNTIME_SECONDS = 5;
 
     /**
      * Constructs a new Scheduler, creating its own FireTracker, DroneTracker, and
@@ -108,6 +111,7 @@ public class Scheduler {
                     String longitudeText = message.getData("longitude");
                     String intensityText = message.getData("intensity");
                     String eventTypeText = message.getData("eventType");
+                    String faultTypeText = message.getData("faultType");
                     String timeText = message.getData("time");
                     if (latitudeText == null || longitudeText == null || intensityText == null || eventTypeText == null
                             || timeText == null) {
@@ -120,7 +124,8 @@ public class Scheduler {
                             Integer.parseInt(longitudeText),
                             Intensity.fromString(intensityText),
                             EventType.fromString(eventTypeText),
-                            LocalTime.parse(timeText));
+                            LocalTime.parse(timeText),
+                            FaultType.fromString(faultTypeText));
                     newFireDetected(fire);
                 } catch (Exception ex) {
                     gui.printMessage("Invalid NEW_INCIDENT message: " + ex.getMessage());
@@ -142,6 +147,7 @@ public class Scheduler {
                     int droneId = Integer.parseInt(droneIdText);
                     gui.printMessage("Drone " + droneId + " assigned to fire at (" + locationKey + ")");
                     fireTracker.assignFire(droneId, locationKey);
+                    handleFaultIfPresent(droneId, locationKey);
                     String unassignedFire = message.getData("unassignedFire");
                     if (unassignedFire != null && !unassignedFire.isEmpty()) {
                         gui.printMessage("Drone assigned to fire at (" + unassignedFire + ") was reassigned.");
@@ -220,6 +226,54 @@ public class Scheduler {
         fireTracker.put(fire);
     }
 
+    private void handleFaultIfPresent(int droneId, String locationKey) {
+        EventInfo assignedFire = fireTracker.getFiresBeingFought().get(locationKey);
+        if (assignedFire == null) {
+            return;
+        }
+        FaultSeverity severity = classifyFault(assignedFire);
+        if (severity == FaultSeverity.NONE) {
+            return;
+        }
+
+        Message faultMessage = new Message(MessageType.DRONE_FAULT);
+        faultMessage.setData("sender", "Scheduler");
+        faultMessage.setData("droneId", String.valueOf(droneId));
+        faultMessage.setData("faultType", assignedFire.faultType.toString());
+        faultMessage.setData("faultSeverity", severity.toString());
+        if (severity == FaultSeverity.SOFT) {
+            faultMessage.setData("downtimeSeconds", String.valueOf(SOFT_FAULT_DOWNTIME_SECONDS));
+        }
+        sendMessage(faultMessage, DroneSubsystem.DRONE_SUBSYSTEM_PORT);
+        sendMessage(faultMessage, GUISubsystem.GUI_SUBSYSTEM_PORT);
+
+        gui.printMessage("Fault detected (" + assignedFire.faultType + ") for drone " + droneId
+                + ". Requeuing fire at (" + locationKey + ").");
+        assignedFire.markFaultHandled();
+        gui.printMessage("Fault marked handled for fire at (" + locationKey + ").");
+        fireTracker.requeueFire(locationKey);
+    }
+
+    private FaultSeverity classifyFault(EventInfo fire) {
+        if (fire == null || fire.isFaultHandled()) {
+            return FaultSeverity.NONE;
+        }
+        FaultType faultType = fire.faultType;
+        if (faultType == null || faultType == FaultType.NONE) {
+            return FaultSeverity.NONE;
+        }
+        switch (faultType) {
+            case SENSOR_FAILURE:
+            case DRONE_LOW_BATTERY:
+                return FaultSeverity.SOFT;
+            case NOZZLE_STUCK:
+            case DRONE_CRASHED:
+                return FaultSeverity.HARD;
+            default:
+                return FaultSeverity.NONE;
+        }
+    }
+
     /**
      * Main execution loop for the scheduler.
      * Monitors fires, updates fire states, and assigns available drones to fires.
@@ -237,6 +291,7 @@ public class Scheduler {
                 assignmentRequest.setData("latitude", String.valueOf(nextFire.latitude));
                 assignmentRequest.setData("intensity", nextFire.intensity.toString());
                 assignmentRequest.setData("eventType", nextFire.eventType.toString());
+                assignmentRequest.setData("faultType", nextFire.faultType.toString());
                 assignmentRequest.setData("time", nextFire.time.toString());
                 assignmentRequest.setData("agentRequired", nextFire.getRemainingAgentRequired());
                 sendMessage(assignmentRequest, DroneSubsystem.DRONE_SUBSYSTEM_PORT);

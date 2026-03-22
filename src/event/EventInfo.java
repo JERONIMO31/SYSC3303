@@ -7,9 +7,11 @@ public class EventInfo {
     public final int longitude;
     public final Intensity intensity;
     public final EventType eventType;
+    public final FaultType faultType;
     public final LocalTime time;
     private int remainingAgentRequired;
     private Integer droneAssigned = null;
+    private boolean faultHandled = false;
 
     /**
      * Constructs a new EventInfo representing a fire event.
@@ -22,7 +24,7 @@ public class EventInfo {
      * @param time      The time the fire was reported
      */
     public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time) {
-        this(latitude, longitude, intensity, eventType, time, null);
+        this(latitude, longitude, intensity, eventType, time, FaultType.NONE, null);
     }
 
     /**
@@ -39,11 +41,46 @@ public class EventInfo {
      */
     public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time,
             Integer agentRequired) {
+        this(latitude, longitude, intensity, eventType, time, FaultType.NONE, agentRequired);
+    }
+
+    /**
+     * Constructs a new EventInfo representing a fire event with an optional
+     * fault type.
+     * 
+     * @param latitude  The latitude coordinate of the fire
+     * @param longitude The longitude coordinate of the fire
+     * @param intensity The intensity level of the fire (LOW, MODERATE, HIGH)
+     * @param eventType The type of event
+     * @param time      The time the fire was reported
+     * @param faultType The fault type (or NONE)
+     */
+    public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time,
+            FaultType faultType) {
+        this(latitude, longitude, intensity, eventType, time, faultType, null);
+    }
+
+    /**
+     * Constructs a new EventInfo representing a fire event with optional
+     * fault type and explicit remaining agent requirement.
+     * If agentRequired is null, defaults are derived from intensity.
+     * 
+     * @param latitude      The latitude coordinate of the fire
+     * @param longitude     The longitude coordinate of the fire
+     * @param intensity     The intensity level of the fire (LOW, MODERATE, HIGH)
+     * @param eventType     The type of event
+     * @param time          The time the fire was reported
+     * @param faultType     The fault type (or NONE)
+     * @param agentRequired Optional remaining agent requirement in liters
+     */
+    public EventInfo(int latitude, int longitude, Intensity intensity, EventType eventType, LocalTime time,
+            FaultType faultType, Integer agentRequired) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.intensity = intensity;
         this.eventType = eventType;
         this.time = time;
+        this.faultType = faultType == null ? FaultType.NONE : faultType;
         if (agentRequired != null) {
             this.remainingAgentRequired = Math.max(0, agentRequired);
             return;
@@ -67,6 +104,7 @@ public class EventInfo {
         this.longitude = 100;
         this.intensity = Intensity.MODERATE;
         this.eventType = EventType.FIRE_DETECTED;
+        this.faultType = FaultType.NONE;
         this.time = LocalTime.now();
     }
 
@@ -137,9 +175,17 @@ public class EventInfo {
 
     public String toString() {
         return String.format(
-                "EventInfo{location=(%d,%d), intensity=%s, eventType=%s, time=%s, remainingAgentRequired=%d, droneAssigned=%s}",
-                longitude, latitude, intensity.toString(), eventType.toString(), time.toString(),
+                "EventInfo{location=(%d,%d), intensity=%s, eventType=%s, faultType=%s, time=%s, remainingAgentRequired=%d, droneAssigned=%s}",
+                longitude, latitude, intensity.toString(), eventType.toString(), faultType.toString(), time.toString(),
                 remainingAgentRequired,
                 droneAssigned == null ? "False" : droneAssigned.toString());
+    }
+
+    public boolean isFaultHandled() {
+        return faultHandled;
+    }
+
+    public void markFaultHandled() {
+        this.faultHandled = true;
     }
 }

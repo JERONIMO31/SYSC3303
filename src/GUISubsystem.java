@@ -120,7 +120,13 @@ public class GUISubsystem {
                 String longitudeText = message.getData("longitude");
                 String intensityText = message.getData("intensity");
                 String eventTypeText = message.getData("eventType");
-                String[] incident_strings = {eventTypeText, latitudeText, longitudeText, intensityText};
+                String faultTypeText = message.getData("faultType");
+                String[] incident_strings = {
+                        "Event: " + eventTypeText,
+                        "Location: " + latitudeText + "," + longitudeText,
+                        "Severity: " + intensityText,
+                        "Fault: " + (faultTypeText == null || faultTypeText.trim().isEmpty() ? "NONE" : faultTypeText)
+                };
                 events.add(0, incident_strings);
                 gui.updateEvent(events);
                 gui.updateGrid();
@@ -149,6 +155,33 @@ public class GUISubsystem {
             case FIRE_EXTINGUISHED:
                 break;
             case AGENT_DEPLOYED:
+                break;
+            case DRONE_FAULT:
+                try {
+                    String droneIdText = message.getData("droneId");
+                    String faultTypeTextLocal = message.getData("faultType");
+                    String faultSeverityTextLocal = message.getData("faultSeverity");
+                    String actionMessage = "Action: unknown";
+                    if (faultSeverityTextLocal != null) {
+                        String severityUpper = faultSeverityTextLocal.trim().toUpperCase();
+                        if (severityUpper.equals("HARD")) {
+                            actionMessage = "Action: Out of commission permanently";
+                        } else if (severityUpper.equals("SOFT")) {
+                            actionMessage = "Action: Going home to reset";
+                        }
+                    }
+                    String[] fault_strings = {
+                            "Fault Event",
+                            "Drone: " + (droneIdText == null ? "unknown" : droneIdText),
+                            "Severity: " + (faultSeverityTextLocal == null ? "unknown" : faultSeverityTextLocal),
+                            "Type: " + (faultTypeTextLocal == null ? "unknown" : faultTypeTextLocal),
+                            actionMessage
+                    };
+                    events.add(0, fault_strings);
+                    gui.updateEvent(events);
+                } catch (Exception ex) {
+                    // ignore malformed fault messages in GUI
+                }
                 break;
             default:
                 //gui.printMessage("Unknown message type: " + message.type);

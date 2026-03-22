@@ -4,6 +4,7 @@ import java.util.TreeMap;
 import event.EventInfo;
 import event.EventType;
 import event.Intensity;
+import event.FaultType;
 import udp.*;
 
 import java.io.BufferedReader;
@@ -143,8 +144,8 @@ public class FireIncident {
             String eventLine;
             while ((eventLine = eventReader.readLine()) != null) {
                 try {
-                    String[] row = eventLine.split(",");
-                    if (row.length != 4) {
+                    String[] row = eventLine.split(",", -1);
+                    if (row.length < 4 || row.length > 5) {
                         gui.printMessage("ERROR: Skipping invalid event line: " + eventLine);
                         continue;
                     }
@@ -153,7 +154,9 @@ public class FireIncident {
                     LocalTime eventTime = LocalTime.parse(row[0].trim());
                     int zoneID = Integer.parseInt(row[1].trim());
                     Zone zone = zoneMap.get(zoneID);
-                    EventInfo eventInfo = new EventInfo(zone.latitude, zone.longitude, intensity, type, eventTime);
+                    FaultType faultType = FaultType.fromString(row.length >= 5 ? row[4] : null);
+                    EventInfo eventInfo = new EventInfo(zone.latitude, zone.longitude, intensity, type, eventTime,
+                            faultType);
                     eventMap.put(eventTime, eventInfo);
                 } catch (Exception ex) {
                     gui.printMessage("ERROR: Skipping invalid event line: " + eventLine + " - " + ex.getMessage());
@@ -234,6 +237,7 @@ public class FireIncident {
         message.setData("longitude", eventInfo.longitude);
         message.setData("intensity", eventInfo.intensity.toString());
         message.setData("eventType", eventInfo.eventType.toString());
+        message.setData("faultType", eventInfo.faultType.toString());
         message.setData("time", eventInfo.time.toString());
         sendMessage(message, Scheduler.SCHEDULER_PORT);
     }

@@ -5,7 +5,8 @@ public enum MessageType {
     NEW_INCIDENT,
     FIRE_EXTINGUISHED,
     ASSIGNMENT,
-    AGENT_DEPLOYED;
+    AGENT_DEPLOYED,
+    DRONE_FAULT;
 
     public static MessageType fromString(String str) {
         try {

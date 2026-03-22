@@ -1,7 +1,7 @@
-Time,Zone ID,Event type,Severity
-00:00:10,1,FIRE_DETECTED,High
-00:00:20,2,DRONE_REQUEST,Moderate
-00:00:30,3,FIRE_DETECTED,Low
-00:00:40,4,FIRE_DETECTED,High
-00:00:50,5,DRONE_REQUEST,Low
-00:01:00,6,FIRE_DETECTED,Moderate
+Time,Zone ID,Event type,Severity,Fault type
+00:00:10,1,FIRE_DETECTED,High,
+00:00:20,2,DRONE_REQUEST,Moderate,Sensor_failure
+00:00:30,3,FIRE_DETECTED,Low,Drone_low_battery
+00:00:40,4,FIRE_DETECTED,High,Nozzle_stuck
+00:00:50,5,DRONE_REQUEST,Low,Drone_crashed
+00:01:00,6,FIRE_DETECTED,Moderate,

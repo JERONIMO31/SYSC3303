@@ -4,12 +4,13 @@ import java.time.LocalTime;
 import java.util.function.Consumer;
 
 import event.EventInfo;
+import event.FaultSeverity;
 import utils.StandardizedTime;
 
 public class DroneInfo {
 
     private enum State {
-        IDLE, TRAVELING_TO_FIRE, EXTINGUISHING, TRAVELING_HOME
+        IDLE, TRAVELING_TO_FIRE, EXTINGUISHING, TRAVELING_HOME, OUT_OF_COMMISSION
     }
 
     public final int droneId;
@@ -26,6 +27,10 @@ public class DroneInfo {
     private Consumer<String> logger;
     private State currentState = State.IDLE;
     private LocalTime stateExpiration = null; // Time when the current state will expire
+    private boolean pendingFault = false;
+    private boolean pendingFaultHard = false;
+    private int pendingFaultSoftSeconds = 0;
+    private boolean hardOutOfCommission = false;
 
     /**
      * Constructs a new DroneInfo with the specified drone ID and parameters.
@@ -92,6 +97,10 @@ public class DroneInfo {
      */
     public void assignToFire(EventInfo fire) {
         if (fire == null) {
+            return;
+        }
+        if (this.currentState == State.OUT_OF_COMMISSION || this.pendingFault || this.hardOutOfCommission) {
+            log("Drone " + this.droneId + " is out of commission and cannot be assigned.");
             return;
         }
 
@@ -294,6 +303,9 @@ public class DroneInfo {
     }
 
     public boolean isAvailableForFire() {
+        if (this.pendingFault || this.hardOutOfCommission || this.currentState == State.OUT_OF_COMMISSION) {
+            return false;
+        }
         switch (currentState) {
             case TRAVELING_HOME:
                 return (availableAgent > 0);
@@ -340,17 +352,71 @@ public class DroneInfo {
                     log("Drone " + this.droneId + " returning to base.");
                     return fire; // Return the fire that was just extinguished
                 case TRAVELING_HOME:
-                    currentState = State.IDLE;
-                    stateExpiration = null;
                     setLocation(0, 0);
                     refillAgent();
+                    if (pendingFault) {
+                        enterOutOfCommission();
+                        break;
+                    }
+                    currentState = State.IDLE;
+                    stateExpiration = null;
                     log("Drone " + this.droneId + " arrived at base and refilled.");
+                    break;
+                case OUT_OF_COMMISSION:
+                    if (!hardOutOfCommission) {
+                        currentState = State.IDLE;
+                        stateExpiration = null;
+                        log("Drone " + this.droneId + " returned to service.");
+                    }
                     break;
                 default:
                     break;
             }
         }
         return null;
+    }
+
+    public void applyFault(FaultSeverity severity, int downtimeSeconds) {
+        if (severity == null || severity == FaultSeverity.NONE) {
+            return;
+        }
+        if (this.currentState == State.OUT_OF_COMMISSION || this.hardOutOfCommission) {
+            log("Drone " + this.droneId + " is already out of commission; ignoring fault.");
+            return;
+        }
+
+        this.longitude = getAccurateLongitude();
+        this.latitude = getAccurateLatitude();
+        unassignFire();
+
+        this.pendingFault = true;
+        this.pendingFaultHard = (severity == FaultSeverity.HARD);
+        this.pendingFaultSoftSeconds = Math.max(0, downtimeSeconds);
+
+        int travelHomeTime = calculateTravelTimeTo(0, 0);
+        if (travelHomeTime > 0) {
+            this.currentState = State.TRAVELING_HOME;
+            this.stateExpiration = getCurrentTime().plusSeconds(travelHomeTime);
+            log("Drone " + this.droneId + " returning to base due to " + severity + " fault.");
+        } else {
+            enterOutOfCommission();
+        }
+    }
+
+    private void enterOutOfCommission() {
+        this.currentState = State.OUT_OF_COMMISSION;
+        if (this.pendingFaultHard) {
+            this.hardOutOfCommission = true;
+            this.stateExpiration = null;
+            log("Drone " + this.droneId + " is out of commission for the remainder of the simulation.");
+        } else {
+            int downtime = this.pendingFaultSoftSeconds > 0 ? this.pendingFaultSoftSeconds : 5;
+            this.stateExpiration = getCurrentTime().plusSeconds(downtime);
+            log("Drone " + this.droneId + " is out of commission for " + downtime + " seconds.");
+        }
+        this.pendingFault = false;
+        this.pendingFaultHard = false;
+        this.pendingFaultSoftSeconds = 0;
     }
 
     private void log(String message) {

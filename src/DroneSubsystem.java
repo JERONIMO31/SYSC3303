@@ -8,6 +8,8 @@ import drone.LiveDroneTracker.DroneAssignment;
 import event.Intensity;
 import event.EventInfo;
 import event.EventType;
+import event.FaultType;
+import event.FaultSeverity;
 import udp.Message;
 import udp.MessageType;
 import utils.StandardizedTime;
@@ -95,6 +97,7 @@ public class DroneSubsystem {
                 int latitude = Integer.parseInt(message.getData("latitude"));
                 Intensity intensity = Intensity.fromString(message.getData("intensity"));
                 EventType eventType = EventType.fromString(message.getData("eventType"));
+                FaultType faultType = FaultType.fromString(message.getData("faultType"));
                 LocalTime time = LocalTime.parse(message.getData("time"));
                 String agentRequiredText = message.getData("agentRequired");
                 Integer agentRequired = null;
@@ -104,7 +107,8 @@ public class DroneSubsystem {
                 gui.printMessage("Received assignment request for fire at (" + longitude + "," + latitude
                         + ") with intensity " + intensity + ".");
 
-                EventInfo fire = new EventInfo(latitude, longitude, intensity, eventType, time, agentRequired);
+                EventInfo fire = new EventInfo(latitude, longitude, intensity, eventType, time, faultType,
+                        agentRequired);
                 DroneAssignment droneAssignment = droneTracker.getDrone(longitude, latitude, intensity);
                 if (droneAssignment == null) {
                     gui.printMessage("No available drone for fire at (" + longitude + "," + latitude
@@ -133,6 +137,31 @@ public class DroneSubsystem {
                     gui.printMessage(
                             "No available drone for fire at (" + longitude + "," + latitude + ") with intensity "
                                     + intensity);
+                }
+                break;
+            case DRONE_FAULT:
+                try {
+                    String droneIdText = message.getData("droneId");
+                    String faultSeverityText = message.getData("faultSeverity");
+                    String downtimeText = message.getData("downtimeSeconds");
+                    if (droneIdText == null || faultSeverityText == null) {
+                        gui.printMessage("DRONE_FAULT message missing required fields, ignoring.");
+                        break;
+                    }
+                    int droneId = Integer.parseInt(droneIdText);
+                    FaultSeverity severity = FaultSeverity.fromString(faultSeverityText);
+                    int downtimeSeconds = 0;
+                    if (downtimeText != null && !downtimeText.trim().isEmpty()) {
+                        downtimeSeconds = Integer.parseInt(downtimeText.trim());
+                    }
+                    DroneInfo faultedDrone = droneTracker.getDroneInfo(droneId);
+                    if (faultedDrone == null) {
+                        gui.printMessage("DRONE_FAULT for unknown drone " + droneId + ", ignoring.");
+                        break;
+                    }
+                    faultedDrone.applyFault(severity, downtimeSeconds);
+                } catch (Exception ex) {
+                    gui.printMessage("Invalid DRONE_FAULT message: " + ex.getMessage());
                 }
                 break;
 

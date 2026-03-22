@@ -115,12 +115,11 @@ public class GUI extends JFrame {
             for (String[] event : events){
                 JPanel eventContainer = new JPanel();
                 eventContainer.setLayout(new BoxLayout(eventContainer, BoxLayout.Y_AXIS));
-                JLabel eventType = new JLabel(event[0]);
-                JLabel eventLocation = new JLabel(event[1]+","+event[2]);
-                JLabel eventSeverity = new JLabel(event[3]);
-                eventContainer.add(eventType);
-                eventContainer.add(eventLocation);
-                eventContainer.add(eventSeverity);
+                for (String line : event) {
+                    if (line != null) {
+                        eventContainer.add(new JLabel(line));
+                    }
+                }
                 eventContainer.setBorder(BorderFactory.createLineBorder(Color.black));
                 EventPanel.add(eventContainer);
             }
