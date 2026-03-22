@@ -39,6 +39,7 @@ public class GUISubsystem {
         this.maxWidth = 0;
         this.zoneMap = new HashMap<>();
         this.events = new ArrayList<>();
+        this.droneMap = new HashMap<>();
 
         try {
             this.socket = new DatagramSocket(GUI_SUBSYSTEM_PORT);
@@ -129,7 +130,7 @@ public class GUISubsystem {
                 };
                 events.add(0, incident_strings);
                 gui.updateEvent(events);
-                gui.updateGrid();
+                //gui.updateGrid();
                 break;
             case ASSIGNMENT:
                 try {
@@ -193,8 +194,12 @@ public class GUISubsystem {
     }
 
 
-    public ArrayList<DroneInfo> getDroneList(){
-        return new ArrayList<>();
+//    public ArrayList<DroneInfo> getDroneList(){
+//        return new ArrayList<>();
+//    }
+
+    public HashMap<String, String> getDroneMap(){
+        return droneMap;
     }
 
     public ArrayList<EventInfo> getEventList(){
@@ -211,6 +216,7 @@ public class GUISubsystem {
             e.printStackTrace();
         }
     }
+
 
     public void mainLoop(){
         while (!Thread.currentThread().isInterrupted()) {

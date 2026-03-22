@@ -24,7 +24,7 @@ public class GUI extends JFrame {
         setLayout(new GridLayout(1, 2, 10, 0));
         int[] maxDimensions = subsystem.getMaxDimensions();
         gridPanel = new Grid(maxDimensions[0]/cellSize, maxDimensions[1]/cellSize, cellSize, cellSize);
-        infoPanel = new InfoPanel(subsystem.getDroneList(), subsystem.getEventList());
+        infoPanel = new InfoPanel(subsystem.getDroneMap(), subsystem.getEventList());
 
         add(gridPanel);
         add(infoPanel);
@@ -33,6 +33,10 @@ public class GUI extends JFrame {
 
         pack();
         setLocationRelativeTo(null);
+
+        new Timer(100,e->{
+            updateDronePositions(subsystem.getDroneMap());
+        }).start();
     }
 
     public class Grid extends JPanel {
@@ -46,9 +50,17 @@ public class GUI extends JFrame {
          @param cellHeight The pixel height of the cell
          @param cellList A reference to the list of cells you would want to populate
          */
+
+        public int cellWidth;
+        public int cellHeight;
+
+
         public ArrayList<ArrayList<JPanel>> cellList;
+
         public Grid(int gridWidth, int gridHeight, int cellWidth, int cellHeight){
-            setLayout(new GridLayout(gridWidth, gridHeight, 0, 0));
+            this.cellWidth = cellWidth;
+            this.cellHeight = cellHeight;
+            setLayout(new GridLayout(gridHeight, gridWidth, 0, 0));
             cellList = new ArrayList<>();
             for (int i = 0; i < gridWidth; i++) {
                 ArrayList<JPanel> tempList = new ArrayList<>();
@@ -63,7 +75,8 @@ public class GUI extends JFrame {
                     tempList.add(cell);
                     add(cell);
                 }
-                cellList.add(i, new ArrayList<>());
+                cellList.add(tempList);
+                //cellList.add(i, new ArrayList<>());
             }
         }
     }
@@ -79,7 +92,7 @@ public class GUI extends JFrame {
         private JPanel EventPanel;
         private JLabel dptitle;
         private JLabel eptitle;
-        public InfoPanel(ArrayList<DroneInfo> drones, ArrayList<EventInfo> events){
+        public InfoPanel(HashMap<String, String> drones, ArrayList<EventInfo> events){
             setLayout(new GridLayout(2, 1));
             DronePanel = new JPanel();
             EventPanel = new JPanel();
@@ -125,6 +138,42 @@ public class GUI extends JFrame {
             }
             //pack();
         }
+    }
+
+    public void clearGrid(){
+        for (ArrayList<JPanel> row : gridPanel.cellList){
+            for (JPanel cell : row){
+                cell.setBackground(Color.WHITE);
+            }
+        }
+    }
+
+    public void colorCell(int x, int y, Color color){
+        if (x< 0 || y < 0 || x >= gridPanel.cellList.size() || y >= gridPanel.cellList.get(0).size()){
+            return;
+        }
+        gridPanel.cellList.get(x).get(y).setBackground(color);
+    }
+
+    public void updateDronePositions(HashMap<String, String> droneMap){
+        clearGrid();
+
+        for(String droneId : droneMap.keySet()){
+            String location = droneMap.get(droneId);
+
+            String[] parts = location.split(",");
+
+            int x = Integer.parseInt((parts[0]));
+            int y = Integer.parseInt((parts[1]));
+
+
+            x = x/gridPanel.cellWidth;
+            y = y/gridPanel.cellHeight;
+
+            colorCell(x,y,Color.BLUE);
+        }
+
+        repaint();
     }
 
     public void updateGrid(){
