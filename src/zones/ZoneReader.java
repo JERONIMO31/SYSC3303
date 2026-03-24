@@ -1,8 +1,9 @@
-package utils;
+package zones;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashMap;
+
 public class ZoneReader {
     /**
      * Reads and parses zone definitions from a CSV file.
@@ -20,14 +21,15 @@ public class ZoneReader {
             while ((zoneLine = zoneReader.readLine()) != null) {
                 try {
                     /*
-                    Zone format is
-                    id,(upperCornerX,upperCornerY),(lowerCornerX,lowerCornerY) with the two sets
-                    of coordinates defining a rectangle (in the sample file, these are both squares,
-                    but this is not always the case)
-                    */
+                     * Zone format is
+                     * id,(upperCornerX,upperCornerY),(lowerCornerX,lowerCornerY) with the two sets
+                     * of coordinates defining a rectangle (in the sample file, these are both
+                     * squares,
+                     * but this is not always the case)
+                     */
                     String[] row = zoneLine.split(",");
                     if (row.length != 3) {
-                        //gui.printMessage("ERROR: Skipping invalid zone line: " + zoneLine);
+                        // gui.printMessage("ERROR: Skipping invalid zone line: " + zoneLine);
                         continue;
                     }
                     int zoneID = Integer.parseInt(row[0].trim());
@@ -45,11 +47,12 @@ public class ZoneReader {
 
                     zoneMap.put(zoneID, zone);
                 } catch (Exception ex) {
-                    //gui.printMessage("ERROR: Skipping invalid zone line: " + zoneLine + " - " + ex.getMessage());
+                    // gui.printMessage("ERROR: Skipping invalid zone line: " + zoneLine + " - " +
+                    // ex.getMessage());
                 }
             }
         } catch (Exception ex) {
-            //gui.printMessage("ERROR: Failed to read zones file: " + ex.getMessage());
+            // gui.printMessage("ERROR: Failed to read zones file: " + ex.getMessage());
             ex.printStackTrace();
         } finally {
             try {

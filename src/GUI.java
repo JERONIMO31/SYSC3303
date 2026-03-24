@@ -1,262 +1,202 @@
+import drone.DroneInfo;
+import event.EventInfo;
+
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
-
-import utils.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class GUI extends JFrame {
 
-    private JTextArea textArea;
-    private JButton startButton;
-    private JButton stopButton;
-    private JTextField zoneFileField;
-    private JButton zoneFileBrowseButton;
-    private JTextField eventFileField;
-    private JButton eventFileBrowseButton;
-    private standardizedTime standardTime;
-    private Drone drone;
-    private FireIncident fireIncident;
-    private Scheduler scheduler;
-    private EndCondition endCondition;
-    private Thread droneThread;
-    private Thread incidentThread;
-    private Thread schedulerThread;
-    private GridWithLegend grid;
 
-    /**
-     * Constructs the GUI window for the fire fighting drone simulation.
-     * Initializes all UI components including text area, file selectors, and control buttons.
-     */
-    public GUI() {
-        setTitle("Fire Fighting Drone Simulation");
+    private static GUISubsystem subsystem;
+
+    private InfoPanel infoPanel;
+
+    private Grid gridPanel;
+
+    public GUI(int width, int height, int cellSize){
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout());
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        setTitle("Fire Fighting Drone Simulator GUI");
+        subsystem = new GUISubsystem(this);
+        //Change to a GridBag Later
+        setLayout(new GridLayout(1, 2, 10, 0));
+        int[] maxDimensions = subsystem.getMaxDimensions();
+        gridPanel = new Grid(maxDimensions[0]/cellSize, maxDimensions[1]/cellSize, cellSize, cellSize);
+        infoPanel = new InfoPanel(subsystem.getDroneMap(), subsystem.getEventList());
 
-        // Output text area
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 3;
-        gbc.weightx = 1.0;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        textArea = new JTextArea(20, 80);
-        textArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        textPanel.add(scrollPane, gbc);
+        add(gridPanel);
+        add(infoPanel);
 
-        gbc.weighty = 0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        // Zone file
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        textPanel.add(new JLabel("Zone File:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        zoneFileField = new JTextField(20);
-        textPanel.add(zoneFileField, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0;
-        zoneFileBrowseButton = new JButton("Browse");
-        zoneFileBrowseButton.addActionListener(e -> browseFile(zoneFileField));
-        textPanel.add(zoneFileBrowseButton, gbc);
-
-        // Event file
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 1;
-        textPanel.add(new JLabel("Event File:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        eventFileField = new JTextField(20);
-        textPanel.add(eventFileField, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0;
-        eventFileBrowseButton = new JButton("Browse");
-        eventFileBrowseButton.addActionListener(e -> browseFile(eventFileField));
-        textPanel.add(eventFileBrowseButton, gbc);
-
-        // Start button
-        gbc.gridx = 1;
-        gbc.gridy = 3;
-        gbc.gridwidth = 1;
-        startButton = new JButton("Start");
-        startButton.addActionListener(e -> startSimulation());
-        textPanel.add(startButton, gbc);
-
-        // Stop button
-        gbc.gridx = 2;
-        gbc.gridy = 3;
-        gbc.gridwidth = 1;
-        stopButton = new JButton("Stop");
-        stopButton.setEnabled(false);
-        stopButton.addActionListener(e -> stopSimulation());
-        textPanel.add(stopButton, gbc);
-
-        //add(new GridWithLegend(""));
-        add(textPanel);
+        setMinimumSize(new Dimension(width, height));
 
         pack();
         setLocationRelativeTo(null);
-    }
 
-    /**
-     * Opens a file chooser dialog to select a file.
-     * Updates the target text field with the selected file path.
-     * 
-     * @param targetField The text field to update with the selected file path
-     */
-    private void browseFile(JTextField targetField) {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
-        int result = fileChooser.showOpenDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            targetField.setText(selectedFile.getAbsolutePath());
-        }
-    }
-
-    /**
-     * Starts the simulation with the selected zone and event files.
-     * Validates file paths, initializes all simulation components,
-     * and starts the drone, scheduler, and fire incident threads.
-     * Disables control buttons during simulation.
-     */
-    private void startSimulation() {
-        String zoneFile = zoneFileField.getText();
-        String eventFile = eventFileField.getText();
-
-        // Validate file paths
-        if (zoneFile == null || zoneFile.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select a zone file.", "Missing Zone File", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (eventFile == null || eventFile.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select an event file.", "Missing Event File", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (!new File(zoneFile).exists()) {
-            JOptionPane.showMessageDialog(this, "Zone file does not exist: " + zoneFile, "File Not Found", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (!new File(eventFile).exists()) {
-            JOptionPane.showMessageDialog(this, "Event file does not exist: " + eventFile, "File Not Found", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Disable buttons during simulation
-        setButtonsEnabled(false);
-        stopButton.setEnabled(true);
-
-        printMessage("Starting simulation...");
-        printMessage("Zone File: " + zoneFile);
-        printMessage("Event File: " + eventFile);
-
-        this.standardTime = new standardizedTime(java.time.LocalTime.now());
-        this.endCondition = new EndCondition();
-        LiveFireTracker fireTracker = new LiveFireTracker();
-        LiveDroneTracker droneTracker = new LiveDroneTracker(1);
-        DroneInfo[] allDrones = droneTracker.getAllDrones();
-        DroneInfo droneInfo = allDrones[0];
-        droneTracker.markDroneAsReady(droneInfo.droneId);
-        drone = new Drone(droneInfo, droneTracker, endCondition, this);
-        droneThread = new Thread(drone);
-        fireIncident = new FireIncident(fireTracker, zoneFile, eventFile, endCondition, standardTime, this);
-        incidentThread = new Thread(fireIncident);
-        scheduler = new Scheduler(droneTracker, fireTracker, endCondition, this);
-        schedulerThread = new Thread(scheduler);
-        if (grid == null) {
-            grid = new GridWithLegend(zoneFile, fireTracker);
-            add(grid);
-            pack();
-        }
-        else {
-            grid.replaceZoneFile(zoneFile);
-        }
-
-        droneThread.start();
-        incidentThread.start();
-        schedulerThread.start();
-
-        // Monitor threads and re-enable buttons when all are done
-        new Thread(() -> {
-            try {
-                droneThread.join();
-                incidentThread.join();
-                schedulerThread.join();
-                SwingUtilities.invokeLater(() -> {
-                    setButtonsEnabled(true);
-                    stopButton.setEnabled(false);
-                    printMessage("Simulation completed.");
-                });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+        new Timer(100,e->{
+            updateDronePositions(subsystem.getDroneMap());
         }).start();
     }
 
-    /**
-     * Stops the currently running simulation.
-     * Sets the end condition flag to signal all threads to stop.
-     */
-    private void stopSimulation() {
-        if (endCondition != null) {
-            endCondition.setStop(true);
-        }
-        if (droneThread != null) {
-            droneThread.interrupt();
-        }
-        if (incidentThread != null) {
-            incidentThread.interrupt();
-        }
-        if (schedulerThread != null) {
-            schedulerThread.interrupt();
-        }
-        printMessage("Stopping simulation...");
-    }
+    public class Grid extends JPanel {
+        /**
+         * A JPanel containing a grid of cells, the reference to which are stored in
+         * a two-dimensional ArrayList.
+         *
+         @param gridWidth The number of cells in the width of the grid
+         @param gridHeight The number of cells in the height of the grid
+         @param cellWidth The pixel width of the cell
+         @param cellHeight The pixel height of the cell
+         @param cellList A reference to the list of cells you would want to populate
+         */
 
-    /**
-     * Enables or disables the control buttons and input fields.
-     * 
-     * @param enabled true to enable controls, false to disable
-     */
-    private void setButtonsEnabled(boolean enabled) {
-        startButton.setEnabled(enabled);
-        zoneFileBrowseButton.setEnabled(enabled);
-        eventFileBrowseButton.setEnabled(enabled);
-        zoneFileField.setEnabled(enabled);
-        eventFileField.setEnabled(enabled);
-    }
+        public int cellWidth;
+        public int cellHeight;
 
-    /**
-     * Prints a message to the GUI text area with timestamp.
-     * Thread-safe method that can be called from any thread.
-     * 
-     * @param message The message to print
-     */
-    public synchronized void printMessage(String message) {
-        SwingUtilities.invokeLater(() -> {
-            if (this.standardTime != null) {
-                String timeStampedMessage = "[" + this.standardTime.getRelativeTime().toString() + "] " + message;
-                textArea.append(timeStampedMessage + "\n");
-            } else {
-                textArea.append(message + "\n");
+
+        public ArrayList<ArrayList<JPanel>> cellList;
+
+        public Grid(int gridWidth, int gridHeight, int cellWidth, int cellHeight){
+            this.cellWidth = cellWidth;
+            this.cellHeight = cellHeight;
+            setLayout(new GridLayout(gridHeight, gridWidth, 0, 0));
+            cellList = new ArrayList<>();
+            for (int i = 0; i < gridWidth; i++) {
+                ArrayList<JPanel> tempList = new ArrayList<>();
+                for (int j = 0; j < gridHeight; j++) {
+                    JPanel cell = new JPanel() {
+                        @Override
+                        public Dimension getPreferredSize() {
+                            return new Dimension(cellWidth, cellHeight);
+                        }
+                    };
+                    cell.setBorder(BorderFactory.createLineBorder(Color.black));
+                    tempList.add(cell);
+                    add(cell);
+                }
+                cellList.add(tempList);
+                //cellList.add(i, new ArrayList<>());
             }
-        });
+        }
     }
 
-    public void updateEvents(LiveFireTracker fireTracker){
-        grid.updateFires(fireTracker.getFireQueue(), fireTracker.getFiresBeingFought());
+    public class InfoPanel extends JPanel {
+        // Okay what do I want to do
+        // I want a list of all the drones for their statuses
+        // I guess a list of events (or a list of zones? discuss)
+        // Aaaaaaand
+        // I think really that's about it
+        //I guess maybe I could show the time too?
+        private JPanel DronePanel;
+        private JPanel EventPanel;
+        private JLabel dptitle;
+        private JLabel eptitle;
+        public InfoPanel(HashMap<String, String> drones, ArrayList<EventInfo> events){
+            setLayout(new GridLayout(2, 1));
+            DronePanel = new JPanel();
+            EventPanel = new JPanel();
+            DronePanel.setLayout(new BoxLayout(DronePanel, BoxLayout.Y_AXIS));
+            EventPanel.setLayout(new BoxLayout(EventPanel, BoxLayout.Y_AXIS));
+            dptitle = new JLabel("Events");
+            eptitle = new JLabel("Drones");
+            DronePanel.add(dptitle);
+            EventPanel.add(eptitle);
+            add(new JScrollPane(DronePanel));
+            add(new JScrollPane(EventPanel));
+        }
+
+        public void updateDronePanel(HashMap<String, String> droneMap){
+            DronePanel.removeAll();
+            DronePanel.add(dptitle);
+            for (String droneId : droneMap.keySet()){
+                JPanel droneContainer = new JPanel();
+                droneContainer.setLayout(new BoxLayout(droneContainer, BoxLayout.Y_AXIS));
+                JLabel droneName = new JLabel("Drone "+droneId);
+                JLabel droneLocation = new JLabel("("+droneMap.get(droneId)+")");
+                droneContainer.add(droneName);
+                droneContainer.add(droneLocation);
+                droneContainer.setBorder(BorderFactory.createLineBorder(Color.black));
+                DronePanel.add(droneContainer);
+            }
+            //pack();
+        }
+
+        public void updateEventPanel(ArrayList<String[]> events){
+            EventPanel.removeAll();
+            EventPanel.add(eptitle);
+            for (String[] event : events){
+                JPanel eventContainer = new JPanel();
+                eventContainer.setLayout(new BoxLayout(eventContainer, BoxLayout.Y_AXIS));
+                for (String line : event) {
+                    if (line != null) {
+                        eventContainer.add(new JLabel(line));
+                    }
+                }
+                eventContainer.setBorder(BorderFactory.createLineBorder(Color.black));
+                EventPanel.add(eventContainer);
+            }
+            //pack();
+        }
+    }
+
+    public void clearGrid(){
+        for (ArrayList<JPanel> row : gridPanel.cellList){
+            for (JPanel cell : row){
+                cell.setBackground(Color.WHITE);
+            }
+        }
+    }
+
+    public void colorCell(int x, int y, Color color){
+        if (x< 0 || y < 0 || x >= gridPanel.cellList.size() || y >= gridPanel.cellList.get(0).size()){
+            return;
+        }
+        gridPanel.cellList.get(x).get(y).setBackground(color);
+    }
+
+    public void updateDronePositions(HashMap<String, String> droneMap){
+        clearGrid();
+
+        for(String droneId : droneMap.keySet()){
+            String location = droneMap.get(droneId);
+
+            String[] parts = location.split(",");
+
+            int x = Integer.parseInt((parts[0]));
+            int y = Integer.parseInt((parts[1]));
+
+
+            x = x/gridPanel.cellWidth;
+            y = y/gridPanel.cellHeight;
+
+            colorCell(x,y,Color.BLUE);
+        }
+
+        repaint();
+    }
+
+    public void updateGrid(){
+
+    }
+
+    public void updateDrones(HashMap<String, String> droneMap){
+        infoPanel.updateDronePanel(droneMap);
+        revalidate();
+        repaint();
+        //pack();
+    }
+
+    public void updateEvent(ArrayList<String[]> events){
+        infoPanel.updateEventPanel(events);
+        revalidate();
+        repaint();
+        //pack();
+    }
+
+    public static void main(String[] args){
+        GUI gui = new GUI(800, 500, 10);
+        gui.setVisible(true);
+        subsystem.mainLoop();
     }
 }
