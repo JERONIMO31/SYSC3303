@@ -199,6 +199,11 @@ public class FireIncidentGUI extends JFrame {
         eventFileField.setEnabled(enabled);
     }
 
+    /**
+     * Sets the standardized time for timestamped log messages.
+     *
+     * @param standardTime The standardized time instance
+     */
     public void setStandardTime(StandardizedTime standardTime) {
         this.standardTime = standardTime;
     }

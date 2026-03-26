@@ -30,6 +30,11 @@ public class Zone {
         this.longitude = (x1 + x2) / 2;
     }
 
+    /**
+     * Returns a human-readable string representation of this zone.
+     *
+     * @return Formatted string with zone ID and corner coordinates
+     */
     @Override
     public String toString() {
         return Integer.toString(zoneId) + ": (" + Integer.toString(x1)
@@ -37,18 +42,15 @@ public class Zone {
                 + " " + Integer.toString(y2) + ")";
     }
 
+    /**
+     * Serializes this zone for UDP transmission.
+     * Format: "id:x1,y1,x2,y2"
+     *
+     * @return The serialized zone string
+     */
     public String UDPString() {
         return Integer.toString(zoneId) + ":" + Integer.toString(x1)
                 + "," + Integer.toString(y1) + "," + Integer.toString(x2)
                 + "," + Integer.toString(y2);
-    }
-
-    /**
-     * Gets the location key for the zone's center point.
-     * 
-     * @return Location string in format "y,x"
-     */
-    public String getLocationKey() {
-        return this.latitude + "," + this.longitude;
     }
 }

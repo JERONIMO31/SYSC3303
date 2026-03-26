@@ -4,7 +4,7 @@ import java.time.LocalTime;
 import java.util.function.Consumer;
 
 import event.EventInfo;
-import event.FaultSeverity;
+import event.FaultType;
 import utils.StandardizedTime;
 
 public class DroneInfo {
@@ -27,10 +27,7 @@ public class DroneInfo {
     private Consumer<String> logger;
     private State currentState = State.IDLE;
     private LocalTime stateExpiration = null; // Time when the current state will expire
-    private boolean pendingFault = false;
-    private boolean pendingFaultHard = false;
-    private int pendingFaultSoftSeconds = 0;
-    private boolean hardOutOfCommission = false;
+    private FaultType currentFault = FaultType.NONE;
 
     /**
      * Constructs a new DroneInfo with the specified drone ID and parameters.
@@ -80,15 +77,6 @@ public class DroneInfo {
     }
 
     /**
-     * Checks if the drone is available for assignment.
-     * 
-     * @return true if the drone has no assigned fire, false otherwise
-     */
-    public boolean isAvailable() {
-        return this.assignedFire == null;
-    }
-
-    /**
      * Assigns this drone to a fire event.
      * Also updates the fire to mark this drone as assigned.
      * Notifies waiting threads that the drone has work.
@@ -99,14 +87,15 @@ public class DroneInfo {
         if (fire == null) {
             return;
         }
-        if (this.currentState == State.OUT_OF_COMMISSION || this.pendingFault || this.hardOutOfCommission) {
+        if (this.currentState == State.OUT_OF_COMMISSION || this.currentFault != FaultType.NONE) {
             log("Drone " + this.droneId + " is out of commission and cannot be assigned.");
             return;
         }
 
         if (this.assignedFire != null && this.assignedFire.getLocationKey().equals(fire.getLocationKey())) {
             fire.assignDrone(this.droneId);
-            log("Drone " + this.droneId + " already assigned to fire (" + fire.getLocationKey() + "), keeping assignment.");
+            log("Drone " + this.droneId + " already assigned to fire (" + fire.getLocationKey()
+                    + "), keeping assignment.");
             return;
         }
 
@@ -209,6 +198,12 @@ public class DroneInfo {
         this.latitude = latitude;
     }
 
+    /**
+     * Gets the interpolated longitude based on travel progress.
+     * Calculates position between origin and destination during travel states.
+     *
+     * @return The current interpolated longitude coordinate
+     */
     public int getAccurateLongitude() {
         if (stateExpiration == null) {
             return this.longitude;
@@ -228,7 +223,9 @@ public class DroneInfo {
                 return this.longitude;
         }
         int deltaLongitude = targetLongitude - this.longitude;
-        double travelTime = getTravelTime();
+        double travelTime = (currentState == State.TRAVELING_HOME)
+                ? calculateTravelTimeTo(0, 0)
+                : getTravelTime();
         if (travelTime <= 0) {
             return targetLongitude;
         }
@@ -239,6 +236,12 @@ public class DroneInfo {
         return this.longitude + (int) (deltaLongitude * progress);
     }
 
+    /**
+     * Gets the interpolated latitude based on travel progress.
+     * Calculates position between origin and destination during travel states.
+     *
+     * @return The current interpolated latitude coordinate
+     */
     public int getAccurateLatitude() {
         if (stateExpiration == null) {
             return this.latitude;
@@ -258,7 +261,9 @@ public class DroneInfo {
                 return this.latitude;
         }
         int deltaLatitude = targetLatitude - this.latitude;
-        double travelTime = getTravelTime();
+        double travelTime = (currentState == State.TRAVELING_HOME)
+                ? calculateTravelTimeTo(0, 0)
+                : getTravelTime();
         if (travelTime <= 0) {
             return targetLatitude;
         }
@@ -269,10 +274,24 @@ public class DroneInfo {
         return this.latitude + (int) (deltaLatitude * progress);
     }
 
+    /**
+     * Calculates the time required to deploy a given amount of agent.
+     *
+     * @param amount The amount of agent to deploy in liters
+     * @return The deployment time in seconds
+     */
     private int calculateAgentDeploymentTime(int amount) {
         return open_nozzle_time + (amount / deploy_rate);
     }
 
+    /**
+     * Calculates travel time from current position to a target location.
+     * Uses physics-based calculation considering acceleration and max speed.
+     *
+     * @param targetLongitude The target longitude coordinate
+     * @param targetLatitude  The target latitude coordinate
+     * @return Travel time in seconds
+     */
     private int calculateTravelTimeTo(int targetLongitude, int targetLatitude) {
         double distance = Math.sqrt(Math.pow(targetLatitude - this.latitude, 2)
                 + Math.pow(targetLongitude - this.longitude, 2));
@@ -295,6 +314,12 @@ public class DroneInfo {
         return (int) Math.ceil(totalTime);
     }
 
+    /**
+     * Gets the current simulation time.
+     * Falls back to real time if standardized time is not set.
+     *
+     * @return The current time
+     */
     private LocalTime getCurrentTime() {
         if (this.standardizedTime != null) {
             return this.standardizedTime.getRelativeTime();
@@ -302,25 +327,13 @@ public class DroneInfo {
         return LocalTime.now();
     }
 
-    public boolean isAvailableForFire() {
-        if (this.pendingFault || this.hardOutOfCommission || this.currentState == State.OUT_OF_COMMISSION) {
-            return false;
-        }
-        switch (currentState) {
-            case TRAVELING_HOME:
-                return (availableAgent > 0);
-            case IDLE:
-                return true;
-            case TRAVELING_TO_FIRE:
-                return (availableAgent > 0);
-            case EXTINGUISHING:
-                return false;
-            default:
-                break;
-        }
-        return false;
-    }
-
+    /**
+     * Checks and handles state transitions based on time expiration.
+     * Manages the full lifecycle: traveling to fire, extinguishing,
+     * traveling home, and handling faults/out-of-commission states.
+     *
+     * @return The fire event if agent was just deployed, null otherwise
+     */
     public EventInfo checkStateTransition() {
         if (stateExpiration != null && !getCurrentTime().isBefore(stateExpiration)) {
             switch (currentState) {
@@ -354,8 +367,18 @@ public class DroneInfo {
                 case TRAVELING_HOME:
                     setLocation(0, 0);
                     refillAgent();
-                    if (pendingFault) {
-                        enterOutOfCommission();
+                    if (currentFault != FaultType.NONE) {
+                        if (currentFault.isHardFault()) {
+                            currentState = State.OUT_OF_COMMISSION;
+                            stateExpiration = null;
+                            log("Drone " + this.droneId + " is out of commission for the remainder of the simulation.");
+                        } else {
+                            int downtime = 5; // Default downtime for soft faults
+                            currentState = State.OUT_OF_COMMISSION;
+                            stateExpiration = getCurrentTime().plusSeconds(downtime);
+                            log("Drone " + this.droneId + " is out of commission for " + downtime
+                                    + " seconds due to fault.");
+                        }
                         break;
                     }
                     currentState = State.IDLE;
@@ -363,9 +386,10 @@ public class DroneInfo {
                     log("Drone " + this.droneId + " arrived at base and refilled.");
                     break;
                 case OUT_OF_COMMISSION:
-                    if (!hardOutOfCommission) {
+                    if (!currentFault.isHardFault()) {
                         currentState = State.IDLE;
                         stateExpiration = null;
+                        currentFault = FaultType.NONE;
                         log("Drone " + this.droneId + " returned to service.");
                     }
                     break;
@@ -376,49 +400,60 @@ public class DroneInfo {
         return null;
     }
 
-    public void applyFault(FaultSeverity severity, int downtimeSeconds) {
-        if (severity == null || severity == FaultSeverity.NONE) {
-            return;
-        }
-        if (this.currentState == State.OUT_OF_COMMISSION || this.hardOutOfCommission) {
-            log("Drone " + this.droneId + " is already out of commission; ignoring fault.");
-            return;
-        }
+    /**
+     * Applies a fault to this drone, causing it to return to base.
+     * Hard faults permanently decommission the drone; soft faults
+     * cause temporary downtime.
+     *
+     * @param faultType The type of fault to apply
+     */
+    public void applyFault(FaultType faultType) {
 
         this.longitude = getAccurateLongitude();
         this.latitude = getAccurateLatitude();
         unassignFire();
 
-        this.pendingFault = true;
-        this.pendingFaultHard = (severity == FaultSeverity.HARD);
-        this.pendingFaultSoftSeconds = Math.max(0, downtimeSeconds);
+        this.currentFault = faultType;
 
         int travelHomeTime = calculateTravelTimeTo(0, 0);
-        if (travelHomeTime > 0) {
-            this.currentState = State.TRAVELING_HOME;
-            this.stateExpiration = getCurrentTime().plusSeconds(travelHomeTime);
-            log("Drone " + this.droneId + " returning to base due to " + severity + " fault.");
-        } else {
-            enterOutOfCommission();
-        }
+        this.currentState = State.TRAVELING_HOME;
+        this.stateExpiration = getCurrentTime().plusSeconds(travelHomeTime);
+        log("Drone " + this.droneId + " returning to base due to " + (faultType.isHardFault() ? "HARD" : "SOFT")
+                + " fault.");
     }
 
-    private void enterOutOfCommission() {
-        this.currentState = State.OUT_OF_COMMISSION;
-        if (this.pendingFaultHard) {
-            this.hardOutOfCommission = true;
-            this.stateExpiration = null;
-            log("Drone " + this.droneId + " is out of commission for the remainder of the simulation.");
-        } else {
-            int downtime = this.pendingFaultSoftSeconds > 0 ? this.pendingFaultSoftSeconds : 5;
-            this.stateExpiration = getCurrentTime().plusSeconds(downtime);
-            log("Drone " + this.droneId + " is out of commission for " + downtime + " seconds.");
-        }
-        this.pendingFault = false;
-        this.pendingFaultHard = false;
-        this.pendingFaultSoftSeconds = 0;
+    /**
+     * Gets the name of the drone's current state.
+     *
+     * @return The state name as a string
+     */
+    public String getStateName() {
+        return this.currentState.name();
     }
 
+    /**
+     * Gets the name of the drone's current fault type.
+     *
+     * @return The fault name as a string
+     */
+    public String getFaultName() {
+        return this.currentFault.name();
+    }
+
+    /**
+     * Gets the current amount of available firefighting agent.
+     *
+     * @return The available agent in liters
+     */
+    public int getAvailableAgent() {
+        return this.availableAgent;
+    }
+
+    /**
+     * Logs a message using the configured logger callback.
+     *
+     * @param message The message to log
+     */
     private void log(String message) {
         if (this.logger != null) {
             this.logger.accept(message);

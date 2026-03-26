@@ -33,6 +33,12 @@ public class LiveFireTracker {
         this.fireQueue.add(fire);
     }
 
+    /**
+     * Updates the remaining agent for a fire being fought.
+     *
+     * @param fireLocationKey The location key of the fire
+     * @param remainingAgent  The updated remaining agent amount
+     */
     public void deployAgent(String fireLocationKey, int remainingAgent) {
         EventInfo fire = this.firesBeingFought.get(fireLocationKey);
         if (fire != null) {
@@ -40,6 +46,12 @@ public class LiveFireTracker {
         }
     }
 
+    /**
+     * Checks whether a fire has been fully extinguished.
+     *
+     * @param fireLocationKey The location key of the fire to check
+     * @return true if the fire exists and is extinguished
+     */
     public boolean isExtinguished(String fireLocationKey) {
         EventInfo fire = this.firesBeingFought.get(fireLocationKey);
         if (fire != null && fire.isExtinguished()) {
@@ -116,18 +128,10 @@ public class LiveFireTracker {
     }
 
     /**
-     * Gets the total count of active fires (queued + being fought).
-     * 
-     * @return The number of active fires
+     * Gets the map of fires currently being fought, keyed by location.
+     *
+     * @return The map of fires being fought
      */
-    public int getActiveFireCount() {
-        return this.firesBeingFought.size() + this.fireQueue.size();
-    }
-
-    public Queue<EventInfo> getFireQueue() {
-        return fireQueue;
-    }
-
     public HashMap<String, EventInfo> getFiresBeingFought() {
         return firesBeingFought;
     }

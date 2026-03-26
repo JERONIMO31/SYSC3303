@@ -4,12 +4,10 @@ import java.time.LocalTime;
 
 import drone.DroneInfo;
 import drone.LiveDroneTracker;
-import drone.LiveDroneTracker.DroneAssignment;
 import event.Intensity;
 import event.EventInfo;
 import event.EventType;
 import event.FaultType;
-import event.FaultSeverity;
 import udp.Message;
 import udp.MessageType;
 import utils.StandardizedTime;
@@ -38,7 +36,7 @@ public class DroneSubsystem {
         this.gui = gui;
         try {
             this.socket = new DatagramSocket(DRONE_SUBSYSTEM_PORT);
-            this.socket.setSoTimeout(1000);
+            this.socket.setSoTimeout(10); // Short timeout to keep main loop responsive
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,6 +65,10 @@ public class DroneSubsystem {
 
     }
 
+    /**
+     * Receives and processes a single UDP message.
+     * Silently ignores socket timeouts when no message is available.
+     */
     private void receiveUDPMessage() {
         DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
         try {
@@ -80,6 +82,12 @@ public class DroneSubsystem {
         }
     }
 
+    /**
+     * Handles an incoming UDP message based on its type.
+     * Dispatches to INIT, ASSIGNMENT, and DRONE_FAULT handlers.
+     *
+     * @param message The received message to handle
+     */
     private void handleMessage(Message message) {
         switch (message.type) {
             case INIT:
@@ -93,73 +101,53 @@ public class DroneSubsystem {
                 this.readyToStart = true;
                 break;
             case ASSIGNMENT:
-                int longitude = Integer.parseInt(message.getData("longitude"));
-                int latitude = Integer.parseInt(message.getData("latitude"));
-                Intensity intensity = Intensity.fromString(message.getData("intensity"));
-                EventType eventType = EventType.fromString(message.getData("eventType"));
-                FaultType faultType = FaultType.fromString(message.getData("faultType"));
-                LocalTime time = LocalTime.parse(message.getData("time"));
-                String agentRequiredText = message.getData("agentRequired");
-                Integer agentRequired = null;
-                if (agentRequiredText != null && !agentRequiredText.trim().isEmpty()) {
-                    agentRequired = Integer.parseInt(agentRequiredText.trim());
-                }
-                gui.printMessage("Received assignment request for fire at (" + longitude + "," + latitude
-                        + ") with intensity " + intensity + ".");
-
-                EventInfo fire = new EventInfo(latitude, longitude, intensity, eventType, time, faultType,
-                        agentRequired);
-                DroneAssignment droneAssignment = droneTracker.getDrone(longitude, latitude, intensity);
-                if (droneAssignment == null) {
-                    gui.printMessage("No available drone for fire at (" + longitude + "," + latitude
-                            + ") with intensity " + intensity);
-                    break;
-                }
-
-                DroneInfo assignedDrone = droneAssignment.drone;
-                EventInfo reassignedFire = droneAssignment.reassignedFire;
-                if (assignedDrone != null) {
-                    assignedDrone.assignToFire(fire);
-
-                    Message response = new Message(MessageType.ASSIGNMENT);
-                    response.setData("droneId", String.valueOf(assignedDrone.droneId));
-                    response.setData("locationKey", fire.getLocationKey());
-                    if (reassignedFire != null) {
-                        response.setData("unassignedFire", reassignedFire.getLocationKey());
-                        gui.printMessage("Reassigning drone " + assignedDrone.droneId + " from fire ("
-                                + reassignedFire.getLocationKey() + ") to (" + fire.getLocationKey() + ").");
+                try {
+                    String droneIdText = message.getData("droneId");
+                    int longitude = Integer.parseInt(message.getData("longitude"));
+                    int latitude = Integer.parseInt(message.getData("latitude"));
+                    Intensity intensity = Intensity.fromString(message.getData("intensity"));
+                    EventType eventType = EventType.fromString(message.getData("eventType"));
+                    LocalTime time = LocalTime.parse(message.getData("time"));
+                    String agentRequiredText = message.getData("agentRequired");
+                    Integer agentRequired = null;
+                    if (agentRequiredText != null && !agentRequiredText.trim().isEmpty()) {
+                        agentRequired = Integer.parseInt(agentRequiredText.trim());
                     }
-                    sendMessage(response, Scheduler.SCHEDULER_PORT);
-                    //sendMessage(response, GUISubsystem.GUI_SUBSYSTEM_PORT);
-                    gui.printMessage("Sent assignment response: drone " + assignedDrone.droneId + " -> fire ("
-                            + fire.getLocationKey() + ").");
-                } else {
-                    gui.printMessage(
-                            "No available drone for fire at (" + longitude + "," + latitude + ") with intensity "
-                                    + intensity);
+
+                    if (droneIdText == null) {
+                        gui.printMessage("ASSIGNMENT message missing droneId, ignoring.");
+                        break;
+                    }
+                    int droneId = Integer.parseInt(droneIdText);
+                    DroneInfo assignedDrone = droneTracker.getDroneInfo(droneId);
+                    if (assignedDrone == null) {
+                        gui.printMessage("ASSIGNMENT for unknown drone " + droneId + ", ignoring.");
+                        break;
+                    }
+
+                    EventInfo fire = new EventInfo(latitude, longitude, intensity, eventType, time, agentRequired);
+                    assignedDrone.assignToFire(fire);
+                    gui.printMessage("Drone " + droneId + " assigned to fire at (" + fire.getLocationKey() + ").");
+                } catch (Exception ex) {
+                    gui.printMessage("Invalid ASSIGNMENT message: " + ex.getMessage());
                 }
                 break;
             case DRONE_FAULT:
                 try {
                     String droneIdText = message.getData("droneId");
-                    String faultSeverityText = message.getData("faultSeverity");
-                    String downtimeText = message.getData("downtimeSeconds");
-                    if (droneIdText == null || faultSeverityText == null) {
+                    String faultTypeString = message.getData("faultType");
+                    FaultType faultType = FaultType.fromString(faultTypeString);
+                    if (droneIdText == null || faultType == null) {
                         gui.printMessage("DRONE_FAULT message missing required fields, ignoring.");
                         break;
                     }
                     int droneId = Integer.parseInt(droneIdText);
-                    FaultSeverity severity = FaultSeverity.fromString(faultSeverityText);
-                    int downtimeSeconds = 0;
-                    if (downtimeText != null && !downtimeText.trim().isEmpty()) {
-                        downtimeSeconds = Integer.parseInt(downtimeText.trim());
-                    }
                     DroneInfo faultedDrone = droneTracker.getDroneInfo(droneId);
                     if (faultedDrone == null) {
                         gui.printMessage("DRONE_FAULT for unknown drone " + droneId + ", ignoring.");
                         break;
                     }
-                    faultedDrone.applyFault(severity, downtimeSeconds);
+                    faultedDrone.applyFault(faultType);
                 } catch (Exception ex) {
                     gui.printMessage("Invalid DRONE_FAULT message: " + ex.getMessage());
                 }
@@ -170,6 +158,12 @@ public class DroneSubsystem {
         }
     }
 
+    /**
+     * Sends a UDP message to the specified port on localhost.
+     *
+     * @param message The message to send
+     * @param port    The destination port
+     */
     private void sendMessage(Message message, int port) {
         try {
             DatagramPacket packet = message.toDatagramPacket();
@@ -187,6 +181,7 @@ public class DroneSubsystem {
      * and returns home for refilling. Continues indefinitely.
      */
     public void mainLoop() {
+        LocalTime lastStatusTime = standardizedTime.getRelativeTime();
         while (!Thread.currentThread().isInterrupted()) {
             receiveUDPMessage();
 
@@ -203,7 +198,37 @@ public class DroneSubsystem {
                             + event.getRemainingAgentRequired() + ".");
                 }
             }
+
+            // Send drone status every real second
+            LocalTime now = standardizedTime.getRelativeTime();
+            if (now.toSecondOfDay() - lastStatusTime.toSecondOfDay() >= 1) {
+                lastStatusTime = now;
+                sendDroneStatus();
+            }
         }
         gui.printMessage("DroneSubsystem main loop has been interrupted and will exit.");
+    }
+
+    /**
+     * Sends the current status of all drones to the Scheduler.
+     * Status includes position, state, fault type, and available agent.
+     */
+    private void sendDroneStatus() {
+        StringBuilder sb = new StringBuilder();
+        DroneInfo[] drones = this.droneTracker.getAllDrones();
+        for (int i = 0; i < drones.length; i++) {
+            DroneInfo d = drones[i];
+            if (i > 0)
+                sb.append(";");
+            sb.append(d.droneId).append(":")
+                    .append(d.getAccurateLongitude()).append(":")
+                    .append(d.getAccurateLatitude()).append(":")
+                    .append(d.getStateName()).append(":")
+                    .append(d.getFaultName()).append(":")
+                    .append(d.getAvailableAgent());
+        }
+        Message status = new Message(MessageType.DRONE_STATUS);
+        status.setData("droneData", sb.toString());
+        sendMessage(status, Scheduler.SCHEDULER_PORT);
     }
 }

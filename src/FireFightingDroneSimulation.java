@@ -15,6 +15,5 @@ public class FireFightingDroneSimulation {
         DroneSubsystemGUI.main(args);
         FireIncidentGUI.main(args);
         SchedulerGUI.main(args);
-        GUI.main(args);
     }
 }

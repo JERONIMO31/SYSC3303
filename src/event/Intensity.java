@@ -20,6 +20,13 @@ public enum Intensity {
         return this.rank;
     }
 
+    /**
+     * Converts a string to an Intensity enum value.
+     *
+     * @param str The string to convert
+     * @return The matching Intensity
+     * @throws IllegalStateException if the string doesn't match any Intensity
+     */
     public static Intensity fromString(String str) {
         try {
             return Intensity.valueOf(str);
@@ -28,6 +35,11 @@ public enum Intensity {
         }
     }
 
+    /**
+     * Returns the name of this intensity level.
+     *
+     * @return The intensity name
+     */
     public String toString() {
         return this.name();
     }
