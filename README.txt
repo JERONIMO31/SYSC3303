@@ -89,7 +89,7 @@ The subsystems communicate using UDP sockets and the Message / MessageType class
 Initialization messages are exchanged when the subsystems start to ensure that all components are connected before the simulation begins.
 
 WORK BREAKDOWN:
-Simon D'Amato: I3 Coding
-Nicolaus Derikx: I3 Coding 
-Anitsan Robert: UML Class Diagram and Updated README.txt
-Jeronimo Cumming: Unit Testing
+Jeronimo Cumming: I4 Coding
+Anitsan Robert: I4 Coding & Unit Testing
+Nicolaus Derikx: Diagrams (UML, Sequence, etc...)
+Simon D'Amato: I5 Coding
