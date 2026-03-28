@@ -57,6 +57,8 @@ public class FireIncident {
 
         Message message = new Message(MessageType.INIT);
         message.setData("sender", "FireIncident");
+        String zoneString = zoneMap.values().stream().map(Zone::UDPString).collect(Collectors.joining("-"));
+        message.setData("zoneData", zoneString);
 
         while (!readyToStart && !Thread.currentThread().isInterrupted()) {
             sendMessage(message, Scheduler.SCHEDULER_PORT);
@@ -71,6 +73,10 @@ public class FireIncident {
         }
     }
 
+    /**
+     * Receives and processes a single UDP message.
+     * Silently ignores socket timeouts when no message is available.
+     */
     private void receiveUDPMessage() {
         DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
         try {
@@ -84,18 +90,18 @@ public class FireIncident {
         }
     }
 
+    /**
+     * Handles an incoming UDP message based on its type.
+     * Processes INIT messages from the Scheduler and FIRE_EXTINGUISHED
+     * notifications.
+     *
+     * @param message The received message to handle
+     */
     private void handleMessage(Message message) {
         switch (message.type) {
             case INIT:
                 String who = message.getData("sender");
-                if (who.equals("GUISubsystem")){
-                    Message zoneMessage = new Message(MessageType.INIT);
-                    String zoneString = zoneMap.values().stream().map(Zone::UDPString).collect(Collectors.joining("-"));
-                    zoneMessage.setData("zoneData", zoneString);
-                    zoneMessage.setData("sender", "FireIncident");
-                    sendMessage(zoneMessage, GUISubsystem.GUI_SUBSYSTEM_PORT);
-                }
-                else if (who.equals("Scheduler")){
+                if (who.equals("Scheduler")) {
                     if (this.readyToStart) {
                         gui.printMessage("Received duplicate INIT message, ignoring.");
                         return;
@@ -104,8 +110,7 @@ public class FireIncident {
                             Integer.parseInt(message.getData("timeScale")));
                     this.gui.setStandardTime(this.standardTime);
                     this.readyToStart = true;
-                }
-                else {
+                } else {
                     gui.printMessage("Received INIT message from unknown sender, ignoring.");
                 }
                 break;
@@ -118,6 +123,12 @@ public class FireIncident {
         }
     }
 
+    /**
+     * Sends a UDP message to the specified port on localhost.
+     *
+     * @param message The message to send
+     * @param port    The destination port
+     */
     private void sendMessage(Message message, int port) {
         try {
             DatagramPacket packet = message.toDatagramPacket();

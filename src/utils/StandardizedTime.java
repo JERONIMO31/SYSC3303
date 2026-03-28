@@ -33,10 +33,20 @@ public class StandardizedTime {
         return LocalTime.MIDNIGHT.plus(scaledElapsed);
     }
 
+    /**
+     * Gets the real-world start time of the simulation.
+     *
+     * @return The start time
+     */
     public LocalTime getStartTime() {
         return startTime;
     }
 
+    /**
+     * Gets the time scale factor for the simulation.
+     *
+     * @return The time scale multiplier
+     */
     public int getTimeScale() {
         return timeScale;
     }

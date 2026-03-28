@@ -99,15 +99,6 @@ public class EventInfo {
         }
     }
 
-    public EventInfo() {
-        this.latitude = 100;
-        this.longitude = 100;
-        this.intensity = Intensity.MODERATE;
-        this.eventType = EventType.FIRE_DETECTED;
-        this.faultType = FaultType.NONE;
-        this.time = LocalTime.now();
-    }
-
     /**
      * Gets the location key for this fire in format "x,y".
      * 
@@ -142,6 +133,11 @@ public class EventInfo {
         return amount;
     }
 
+    /**
+     * Sets the remaining agent required to extinguish the fire.
+     *
+     * @param amount The new remaining agent amount in liters
+     */
     public void setAgent(int amount) {
         this.remainingAgentRequired = amount;
     }
@@ -156,15 +152,6 @@ public class EventInfo {
     }
 
     /**
-     * Checks if a drone has been assigned to this fire.
-     * 
-     * @return true if a drone is assigned, false otherwise
-     */
-    public boolean hasDroneAssigned() {
-        return this.droneAssigned != null;
-    }
-
-    /**
      * Assigns a drone to this fire.
      * 
      * @param droneId The ID of the drone to assign, or null to unassign
@@ -173,6 +160,11 @@ public class EventInfo {
         this.droneAssigned = droneId;
     }
 
+    /**
+     * Returns a string representation of this fire event.
+     *
+     * @return Formatted string with all event details
+     */
     public String toString() {
         return String.format(
                 "EventInfo{location=(%d,%d), intensity=%s, eventType=%s, faultType=%s, time=%s, remainingAgentRequired=%d, droneAssigned=%s}",
@@ -181,10 +173,18 @@ public class EventInfo {
                 droneAssigned == null ? "False" : droneAssigned.toString());
     }
 
+    /**
+     * Checks whether the fault associated with this event has been handled.
+     *
+     * @return true if the fault has been handled
+     */
     public boolean isFaultHandled() {
         return faultHandled;
     }
 
+    /**
+     * Marks the fault associated with this event as handled.
+     */
     public void markFaultHandled() {
         this.faultHandled = true;
     }

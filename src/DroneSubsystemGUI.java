@@ -127,6 +127,10 @@ public class DroneSubsystemGUI extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    /**
+     * Starts the drone subsystem simulation with the configured parameters.
+     * Validates all input fields and launches on a background thread.
+     */
     private void startSimulation() {
         String totalDronesText = totalDronesField.getText();
         String agentCapacityText = agentCapacityField.getText();
@@ -203,6 +207,9 @@ public class DroneSubsystemGUI extends JFrame {
         DroneSubsystemThread.start();
     }
 
+    /**
+     * Stops the running drone subsystem simulation.
+     */
     private void stopSimulation() {
         printMessage("Stopping DroneSubsystem...");
         if (DroneSubsystemThread != null && DroneSubsystemThread.isAlive()) {
@@ -213,6 +220,11 @@ public class DroneSubsystemGUI extends JFrame {
         stopButton.setEnabled(false);
     }
 
+    /**
+     * Enables or disables all input fields and the start button.
+     *
+     * @param enabled true to enable, false to disable
+     */
     private void setButtonsEnabled(boolean enabled) {
         startButton.setEnabled(enabled);
         totalDronesField.setEnabled(enabled);
@@ -223,10 +235,21 @@ public class DroneSubsystemGUI extends JFrame {
         openNozzleTimeField.setEnabled(enabled);
     }
 
+    /**
+     * Sets the standardized time for timestamped log messages.
+     *
+     * @param standardTime The standardized time instance
+     */
     public void setStandardTime(StandardizedTime standardTime) {
         this.standardTime = standardTime;
     }
 
+    /**
+     * Prints a timestamped message to the text area.
+     * Thread-safe method that can be called from any thread.
+     *
+     * @param message The message to print
+     */
     public synchronized void printMessage(String message) {
         SwingUtilities.invokeLater(() -> {
             if (this.standardTime != null) {
@@ -238,6 +261,11 @@ public class DroneSubsystemGUI extends JFrame {
         });
     }
 
+    /**
+     * Entry point for the DroneSubsystem GUI application.
+     *
+     * @param args Command line arguments (not used)
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             DroneSubsystemGUI gui = new DroneSubsystemGUI();
