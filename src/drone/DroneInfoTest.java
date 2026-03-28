@@ -1,34 +1,38 @@
 package drone;
 
-import event.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import utils.StandardizedTime;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import event.EventInfo;
+import event.EventType;
+import event.FaultType;
+import event.Intensity;
+import utils.StandardizedTime;
 
 class DroneInfoTest {
 
     private DroneInfo drone;
-    private EventInfo fire;
-    private List<String> logs;
+    private StubTime stubTime;
+    private List<String> logMessages;
+    private StubFire stubFire;
 
-    // Fake time controller
-    static class MockTime extends StandardizedTime {
+    // --- STUBS ---
+    static class StubTime extends StandardizedTime {
         private LocalTime time;
 
-        public MockTime(LocalTime start) {
-            super(start, 1);
-            this.time = start;
+        StubTime(LocalTime time) {
+            super(time, 1);
+            this.time = time;
         }
 
-        public void setTime(LocalTime t) {
-            this.time = t;
+        void setTime(LocalTime time) {
+            this.time = time;
         }
 
         @Override
@@ -37,189 +41,117 @@ class DroneInfoTest {
         }
     }
 
-    private MockTime mockTime;
+    static class StubFire extends EventInfo {
+        int appliedAgent = 0;
+        int remainingAgentRequired;
+        Integer assignedDroneId = null;
+
+        StubFire(int latitude, int longitude, int requiredAgent) {
+            super(latitude, longitude, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now());
+            this.remainingAgentRequired = requiredAgent;
+        }
+
+        @Override
+        public String getLocationKey() {
+            return "fire1";
+        }
+
+        @Override
+        public int getRemainingAgentRequired() {
+            return remainingAgentRequired;
+        }
+
+        @Override
+        public int applyAgent(int amount) {
+            int deployed = Math.min(amount, remainingAgentRequired);
+            appliedAgent += deployed;
+            remainingAgentRequired -= deployed;
+            return deployed;
+        }
+
+        @Override
+        public void assignDrone(Integer droneId) {
+            assignedDroneId = droneId;
+        }
+    }
 
     @BeforeEach
-    void setup() {
-        logs = new ArrayList<>();
-        mockTime = new MockTime(LocalTime.of(0, 0));
+    void setUp() {
+        logMessages = new ArrayList<>();
+        stubTime = new StubTime(LocalTime.of(12, 0));
 
         drone = new DroneInfo(
-                1,
-                100, // capacity
+                1,   // droneId
+                100, // agentCapacity
                 10,  // speed
-                5,   // acceleration
-                10,  // deploy rate
-                2,   // nozzle time
-                mockTime,
-                logs::add
+                2,   // acceleration
+                5,   // deployRate
+                3,   // openNozzleTime
+                stubTime,
+                logMessages::add
         );
 
-        fire = new EventInfo(10, 10, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now());
+        stubFire = new StubFire(10, 20, 50); // latitude, longitude, requiredAgent
     }
 
-    // -------------------------------
-    // BASIC FAULT BEHAVIOR
-    // -------------------------------
+    // --- TESTS ---
+
     @Test
-    void testApplySoftFault() {
-        drone.assignToFire(fire);
-
-        mockTime.setTime(mockTime.getRelativeTime().plusSeconds(1));
-
-        drone.applyFault(FaultSeverity.SOFT, 10);
-
-        assertFalse(drone.isAvailableForFire());
-        assertTrue(logs.stream().anyMatch(s -> s.contains("returning to base")));
+    void testAssignToFire() {
+        drone.assignToFire(stubFire);
+        assertEquals(stubFire, drone.getAssignedFire());
+        assertEquals("TRAVELING_TO_FIRE", drone.getStateName());
+        assertEquals(drone.droneId, stubFire.assignedDroneId);
+        assertTrue(logMessages.stream().anyMatch(s -> s.contains("assigned to fire")));
     }
 
     @Test
-    void testApplyHardFault() {
-        drone.applyFault(FaultSeverity.HARD, 0);
-
-        // simulate transition immediately
-        drone.checkStateTransition();
-
-        assertFalse(drone.isAvailableForFire());
-    }
-
-    @Test
-    void testApplyFaultIgnoredWhenNone() {
-        drone.applyFault(FaultSeverity.NONE, 10);
-        assertTrue(drone.isAvailableForFire());
-    }
-
-    @Test
-    void testApplyFaultWhileAlreadyOutOfCommission() {
-        drone.applyFault(FaultSeverity.HARD, 0);
-        drone.checkStateTransition();
-
-        drone.applyFault(FaultSeverity.SOFT, 5);
-
-        assertTrue(logs.stream().anyMatch(s -> s.contains("already out of commission")));
-    }
-
-    // -------------------------------
-    // FAULT + ASSIGNMENT INTERACTION
-    // -------------------------------
-
-    @Test
-    void testCannotAssignWhenFaulted() {
-        drone.applyFault(FaultSeverity.SOFT, 10);
-        drone.assignToFire(fire);
-
+    void testUnassignFire() {
+        drone.assignToFire(stubFire);
+        drone.unassignFire();
         assertNull(drone.getAssignedFire());
+        assertNull(stubFire.assignedDroneId);
     }
 
     @Test
-    void testUnassignOnFault() {
-        drone.assignToFire(fire);
-        assertNotNull(drone.getAssignedFire());
+    void testRefillAgent() {
+        drone.assignToFire(stubFire);
+        drone.deployAgent();
+        assertTrue(drone.getAvailableAgent() < 100);
 
-        drone.applyFault(FaultSeverity.SOFT, 5);
+        drone.refillAgent();
+        assertEquals(100, drone.getAvailableAgent());
+    }
 
+    @Test
+    void testDeployAgent() {
+        drone.assignToFire(stubFire);
+        int deployed = drone.deployAgent();
+        assertEquals(50, deployed);
+        assertEquals(50, drone.getAvailableAgent());
+        assertEquals(0, stubFire.remainingAgentRequired);
+    }
+
+    @Test
+    void testDeployAgentWithoutFire() {
+        assertEquals(0, drone.deployAgent());
+    }
+
+    @Test
+    void testApplyFault() {
+        drone.assignToFire(stubFire);
+        drone.applyFault(FaultType.DRONE_STUCK);
+        assertEquals("TRAVELING_HOME", drone.getStateName());
+        assertEquals(FaultType.DRONE_STUCK.name(), drone.getFaultName());
         assertNull(drone.getAssignedFire());
-    }
-
-    // -------------------------------
-    // STATE TRANSITIONS WITH FAULTS
-    // -------------------------------
-
-    @Test
-    void testSoftFaultRecovery() {
-        drone.applyFault(FaultSeverity.SOFT, 5);
-
-        // simulate time passing
-        mockTime.setTime(mockTime.getRelativeTime().plusSeconds(10));
-        drone.checkStateTransition(); // go OUT_OF_COMMISSION
-        drone.checkStateTransition(); // recover
-
-        assertTrue(drone.isAvailableForFire());
+        assertTrue(logMessages.stream().anyMatch(s -> s.contains("returning to base")));
     }
 
     @Test
-    void testHardFaultNeverRecovers() {
-        drone.applyFault(FaultSeverity.HARD, 0);
-
-        mockTime.setTime(mockTime.getRelativeTime().plusSeconds(100));
-        drone.checkStateTransition();
-        drone.checkStateTransition();
-
-        assertFalse(drone.isAvailableForFire());
-    }
-
-    @Test
-    void testFaultDuringTravelToFire() {
-        drone.assignToFire(fire);
-
-        drone.applyFault(FaultSeverity.SOFT, 5);
-
-        assertFalse(drone.isAvailableForFire());
+    void testAssignToFireWhenOutOfCommission() {
+        drone.applyFault(FaultType.NOZZLE_STUCK);
+        drone.assignToFire(stubFire);
         assertNull(drone.getAssignedFire());
-    }
-
-    @Test
-    void testFaultTriggersReturnHome() {
-        drone.assignToFire(fire);
-
-        // simulate time passing so drone is no longer at base
-        mockTime.setTime(mockTime.getRelativeTime().plusSeconds(1));
-
-        drone.applyFault(FaultSeverity.SOFT, 5);
-
-        assertTrue(logs.stream().anyMatch(s -> s.contains("returning to base due to")));
-    }
-
-    // -------------------------------
-    // AVAILABILITY LOGIC
-    // -------------------------------
-
-    @Test
-    void testAvailableInitially() {
-        assertTrue(drone.isAvailableForFire());
-    }
-
-    @Test
-    void testNotAvailableWhenExtinguishing() {
-        drone.assignToFire(fire);
-
-        // force transition
-        mockTime.setTime(mockTime.getRelativeTime().plusSeconds(100));
-        drone.checkStateTransition();
-
-        assertFalse(drone.isAvailableForFire());
-    }
-
-    // -------------------------------
-    // EDGE CASES
-    // -------------------------------
-
-    @Test
-    void testDeployAgentReducesFireAndDrone() {
-        drone.assignToFire(fire);
-
-        int used = drone.deployAgent();
-
-        assertTrue(used > 0);
-        assertTrue(fire.getRemainingAgentRequired() < 10);
-    }
-
-    @Test
-    void testDeployAgentNoFire() {
-        int used = drone.deployAgent();
-        assertEquals(0, used);
-    }
-
-    @Test
-    void testTravelTimeZeroWhenNoFire() {
-        assertEquals(0, drone.getTravelTime());
-    }
-
-    @Test
-    void testAssignSameFireDoesNotDuplicate() {
-        drone.assignToFire(fire);
-        drone.assignToFire(fire);
-
-        assertEquals(fire, drone.getAssignedFire());
+        assertTrue(logMessages.stream().anyMatch(s -> s.contains("out of commission")));
     }
 }
