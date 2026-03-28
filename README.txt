@@ -90,6 +90,6 @@ Initialization messages are exchanged when the subsystems start to ensure that a
 
 WORK BREAKDOWN:
 Jeronimo Cumming: I4 Coding
-Anitsan Robert: I4 Coding & Unit Testing
+Anitsan Robert: I4 Coding & Unit Testing 
 Nicolaus Derikx: Diagrams (UML, Sequence, etc...)
 Simon D'Amato: I5 Coding
