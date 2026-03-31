@@ -432,6 +432,15 @@ public class DroneInfo {
     }
 
     /**
+     * Gets the id of the drone.
+     *
+     * @return The id as a int
+     */
+    public int getId() {
+        return this.droneId;
+    }
+
+    /**
      * Gets the name of the drone's current fault type.
      *
      * @return The fault name as a string
