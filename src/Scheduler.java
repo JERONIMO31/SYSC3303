@@ -96,6 +96,28 @@ public class Scheduler {
         gui.printMessage("Scheduler initialized and starting main loop...");
     }
 
+    public Scheduler(int timeScale, SchedulerGUI gui, boolean skipUDPInit) {
+        this.gui = gui;
+        this.fireTracker = new LiveFireTracker();
+        if (!skipUDPInit) {
+            try {
+                this.socket = new DatagramSocket(SCHEDULER_PORT);
+                this.socket.setSoTimeout(10);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            gui.printMessage("Schedular waiting for connection from other subsystems...");
+            while ((!fireIncidentConnected || !droneSubsystemConnected)
+                    && !Thread.currentThread().isInterrupted()) {
+                receiveUDPMessage();
+            }
+        }
+
+        this.standardTime = new StandardizedTime(LocalTime.now(), timeScale);
+        gui.setStandardTime(this.standardTime);
+    }
+
     /**
      * Receives and processes a single UDP message.
      * Silently ignores socket timeouts when no message is available.

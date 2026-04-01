@@ -65,10 +65,18 @@ public class DroneSubsystem {
 
     }
 
-    /**
-     * Receives and processes a single UDP message.
-     * Silently ignores socket timeouts when no message is available.
-     */
+    // TEST-ONLY constructor (does NOT open a socket)
+    public DroneSubsystem(LiveDroneTracker tracker, DroneSubsystemGUI gui, StandardizedTime time) {
+        this.droneTracker = tracker;
+        this.gui = gui;
+        this.standardizedTime = time;
+        this.readyToStart = true;
+    }
+
+        /**
+         * Receives and processes a single UDP message.
+         * Silently ignores socket timeouts when no message is available.
+         */
     private void receiveUDPMessage() {
         DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
         try {
