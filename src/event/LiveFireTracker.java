@@ -135,4 +135,8 @@ public class LiveFireTracker {
     public HashMap<String, EventInfo> getFiresBeingFought() {
         return firesBeingFought;
     }
+
+    public int getPendingFireCount() {
+        return fireQueue.size();
+    }
 }
