@@ -26,10 +26,6 @@ public class DroneSubsystemTest {
     private TestTracker tracker;
     private TestDrone drone;
 
-    // -------------------------------
-    // Test Stubs
-    // -------------------------------
-
     static class TestGUI extends DroneSubsystemGUI {
         List<String> messages = new ArrayList<>();
         StandardizedTime time;
@@ -122,13 +118,12 @@ public class DroneSubsystemTest {
 
         subsystem = new DroneSubsystem(tracker, gui, new StandardizedTime(LocalTime.now(), 1));
 
-        // Ensure ready
         setPrivate("readyToStart", true);
     }
 
     @Test
     public void testInitMessage() throws Exception {
-        setPrivate("readyToStart", false);   // <-- FIX
+        setPrivate("readyToStart", false);
 
         Message init = new Message(MessageType.INIT);
         init.setData("startTime", "12:00:00");
@@ -143,14 +138,12 @@ public class DroneSubsystemTest {
 
     @Test
     public void testAssignment() throws Exception {
-        // Ensure subsystem is initialized
         setPrivate("readyToStart", false);
         Message init = new Message(MessageType.INIT);
         init.setData("startTime", "12:00:00");
         init.setData("timeScale", "1");
         invokeHandle(init);
 
-        // Now send assignment
         Message m = new Message(MessageType.ASSIGNMENT);
         m.setData("droneId", "1");
         m.setData("longitude", "100");

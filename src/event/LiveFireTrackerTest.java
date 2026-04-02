@@ -99,7 +99,6 @@ class LiveFireTrackerTest {
     @Test
     void testDeployAgent_nonExistingFire_doesNothing() {
         tracker.deployAgent("fake", 10);
-        // no crash = pass
     }
 
     @Test
@@ -109,7 +108,6 @@ class LiveFireTrackerTest {
         tracker.put(fire);
         tracker.assignFire(1, fire.getLocationKey());
 
-        // fully extinguish
         fire.setAgent(0);
 
         assertTrue(tracker.isExtinguished(fire.getLocationKey()));

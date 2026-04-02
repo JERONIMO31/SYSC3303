@@ -23,7 +23,6 @@ public class SchedulerTest {
 
     @BeforeEach
     public void setup() throws Exception {
-        // Minimal mock GUI
         mockGui = new SchedulerGUI() {
             @Override public void printMessage(String msg) {}
             @Override public void setZoneMap(HashMap<Integer, Zone> map) {}
@@ -34,10 +33,9 @@ public class SchedulerTest {
             @Override public void updateDronePositions(String droneData) {}
         };
 
-        // Create Scheduler instance via constructor
         Constructor<Scheduler> ctor = Scheduler.class.getDeclaredConstructor(int.class, SchedulerGUI.class, boolean.class);
         ctor.setAccessible(true);
-        scheduler = ctor.newInstance(1, mockGui, true); // true = skip UDP wait
+        scheduler = ctor.newInstance(1, mockGui, true);
     }
 
     private Object getField(String name) throws Exception {
@@ -74,10 +72,8 @@ public class SchedulerTest {
 
     @Test
     public void testSelectBestDrone() throws Exception {
-        // Prepare a drone in droneStatusMap
         callMethod("parseDroneStatus", new Class[]{String.class}, "1:10:10:IDLE:NONE:5");
 
-        // Prepare a fire
         EventInfo fire = new EventInfo(12, 12, Intensity.MODERATE, EventType.FIRE_DETECTED, LocalTime.now(), FaultType.NONE);
         callMethod("newFireDetected", new Class[]{EventInfo.class}, fire);
 

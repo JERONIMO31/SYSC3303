@@ -47,7 +47,7 @@ public class DroneSubsystemGUITest {
     public void testPrintMessageWithoutTime() throws Exception {
         JTextArea textArea = (JTextArea) getField("textArea");
         callMethod("printMessage", new Class[]{String.class}, "Hello Test");
-        Thread.sleep(100); // wait for Swing thread
+        Thread.sleep(100);
         assertTrue(textArea.getText().contains("Hello Test"));
     }
 
@@ -61,10 +61,8 @@ public class DroneSubsystemGUITest {
         SwingUtilities.invokeAndWait(() -> {
         });
 
-        // Get textArea content
         JTextArea textArea = (JTextArea) getField("textArea");
 
-        // Assert the message is included
         assertTrue(textArea.getText().contains("Timed Message"),
                 "textArea should contain the message with timestamp");
     }
@@ -86,13 +84,13 @@ public class DroneSubsystemGUITest {
     @Test
     public void testStartSimulationWithInvalidInput() throws Exception {
         JTextField totalDronesField = (JTextField) getField("totalDronesField");
-        totalDronesField.setText("abc"); // invalid input
+        totalDronesField.setText("abc");
 
         callMethod("startSimulation", new Class[]{});
         Thread.sleep(100);
 
         Object thread = getField("DroneSubsystemThread");
-        assertNull(thread); // thread should not start
+        assertNull(thread);
     }
 
     @Test

@@ -7,10 +7,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class EventInfoTest {
 
-    // -------------------------------
-    // CONSTRUCTOR TESTS
-    // -------------------------------
-
     @Test
     void testDefaultAgentFromIntensity() {
         EventInfo high = new EventInfo(0, 0, Intensity.HIGH, EventType.FIRE_DETECTED, LocalTime.now());
@@ -40,10 +36,6 @@ public class EventInfoTest {
         assertEquals(FaultType.NONE, event.faultType);
     }
 
-    // -------------------------------
-    // LOCATION + BASIC METHODS
-    // -------------------------------
-
     @Test
     void testGetLocationKey() {
         EventInfo event = new EventInfo(10, 20, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now());
@@ -59,10 +51,6 @@ public class EventInfoTest {
         assertTrue(str.contains("LOW"));
         assertTrue(str.contains("FIRE_DETECTED"));
     }
-
-    // -------------------------------
-    // AGENT LOGIC
-    // -------------------------------
 
     @Test
     void testApplyAgentNormal() {
@@ -91,7 +79,7 @@ public class EventInfoTest {
 
         int used = event.applyAgent(50);
 
-        assertEquals(10, used); // only what was needed
+        assertEquals(10, used);
         assertEquals(0, event.getRemainingAgentRequired());
     }
 
@@ -115,10 +103,6 @@ public class EventInfoTest {
         assertEquals(99, event.getRemainingAgentRequired());
     }
 
-    // -------------------------------
-    // DRONE ASSIGNMENT
-    // -------------------------------
-
     @Test
     void testAssignDrone() {
         EventInfo event = new EventInfo(0, 0, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now());
@@ -131,10 +115,6 @@ public class EventInfoTest {
 
         assertTrue(event.toString().contains("False"));
     }
-
-    // -------------------------------
-    // FAULT HANDLING
-    // -------------------------------
 
     @Test
     void testFaultInitiallyNotHandled() {
@@ -159,12 +139,8 @@ public class EventInfoTest {
         event.markFaultHandled();
         event.markFaultHandled();
 
-        assertTrue(event.isFaultHandled()); // still true, no side effects
+        assertTrue(event.isFaultHandled());
     }
-
-    // -------------------------------
-    // EDGE CASES
-    // -------------------------------
 
     @Test
     void testApplyAgentZero() {

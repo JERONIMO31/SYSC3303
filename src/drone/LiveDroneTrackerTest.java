@@ -55,7 +55,7 @@ class LiveDroneTrackerTest {
         DroneInfo drone = tracker.getDroneInfo(2);
 
         assertNotNull(drone);
-        assertEquals(2, drone.getId()); // assumes getId() exists
+        assertEquals(2, drone.getId());
     }
 
     @Test
