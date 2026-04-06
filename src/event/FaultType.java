@@ -4,7 +4,8 @@ public enum FaultType {
     NONE,
     NOZZLE_STUCK,
     DRONE_STUCK,
-    PACKET_LOSS;
+    PACKET_LOSS,
+    DEAD_BATTERY;
 
     /**
      * Converts a string to a FaultType enum value.
@@ -47,6 +48,6 @@ public enum FaultType {
      * @return true if the fault permanently decommissions a drone
      */
     public boolean isHardFault() {
-        return this == NOZZLE_STUCK;
+        return this == NOZZLE_STUCK || this == DEAD_BATTERY;
     }
 }

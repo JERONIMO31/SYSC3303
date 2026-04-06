@@ -53,15 +53,17 @@ public class Scheduler {
         String state;
         String fault;
         int agent;
+        int batteryRange;
         String assignedFireKey;
 
-        DroneStatus(int id, int longitude, int latitude, String state, String fault, int agent) {
+        DroneStatus(int id, int longitude, int latitude, String state, String fault, int agent, int batteryRange) {
             this.id = id;
             this.longitude = longitude;
             this.latitude = latitude;
             this.state = state;
             this.fault = fault;
             this.agent = agent;
+            this.batteryRange = batteryRange;
         }
     }
 
@@ -224,8 +226,8 @@ public class Scheduler {
                             LocalTime.parse(timeText),
                             FaultType.fromString(faultTypeText));
                     newFireDetected(fire);
-                    //gui.addFireEvent(fire.getLocationKey(), fire.longitude, fire.latitude,
-                            //fire.intensity, fire.time, fire.getRemainingAgentRequired());
+                    // gui.addFireEvent(fire.getLocationKey(), fire.longitude, fire.latitude,
+                    // fire.intensity, fire.time, fire.getRemainingAgentRequired());
                 } catch (Exception ex) {
                     gui.printMessage("Invalid NEW_INCIDENT message: " + ex.getMessage());
                 }
@@ -253,8 +255,7 @@ public class Scheduler {
 
                         droneTotalBusyTime.put(
                                 deployedDroneId,
-                                droneTotalBusyTime.getOrDefault(deployedDroneId, 0L) + duration
-                        );
+                                droneTotalBusyTime.getOrDefault(deployedDroneId, 0L) + duration);
                     }
 
                     // Clear drone's assignment since it finished deploying
@@ -347,8 +348,7 @@ public class Scheduler {
                 fire.latitude,
                 fire.intensity,
                 fire.time,
-                fire.getRemainingAgentRequired()
-        );
+                fire.getRemainingAgentRequired());
     }
 
     /**
@@ -356,7 +356,7 @@ public class Scheduler {
      * Preserves assigned fire keys from previous status entries.
      *
      * @param droneData The drone data string in format
-     *                  "id:lon:lat:state:fault:agent;..."
+     *                  "id:lon:lat:state:fault:agent:batteryRange;..."
      */
     private void parseDroneStatus(String droneData) {
         String[] entries = droneData.split(";");
@@ -369,12 +369,23 @@ public class Scheduler {
                     Integer.parseInt(parts[2]),
                     parts[3],
                     parts[4],
-                    Integer.parseInt(parts[5]));
+                    Integer.parseInt(parts[5]),
+                    Integer.parseInt(parts[6]));
             // Preserve assigned fire key from previous status
             DroneStatus prev = droneStatusMap.get(id);
             if (prev != null && prev.assignedFireKey != null) {
                 if (status.state.equals("TRAVELING_TO_FIRE") || status.state.equals("EXTINGUISHING")) {
                     status.assignedFireKey = prev.assignedFireKey;
+                } else if (!"NONE".equals(status.fault)) {
+                    gui.printMessage("Drone " + id + " has fault (" + status.fault
+                            + ") and is no longer extinguishing fire at (" + prev.assignedFireKey
+                            + "). The fire has been requeued if it was still active.");
+                    EventInfo assignedFire = fireTracker.getFire(prev.assignedFireKey);
+                    fireTracker.requeueFire(prev.assignedFireKey);
+                    if (assignedFire != null) {
+                        assignedFire.markFaultHandled();
+                        gui.printMessage("Fault marked handled for fire at (" + prev.assignedFireKey + ").");
+                    }
                 } else {
                     fireTracker.requeueFire(prev.assignedFireKey);
                     gui.printMessage("Drone " + id + " is no longer extinguishing fire at (" + prev.assignedFireKey
@@ -421,9 +432,17 @@ public class Scheduler {
             if (eligible) {
                 double dx = drone.longitude - longitude;
                 double dy = drone.latitude - latitude;
-                double distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < bestDistance) {
-                    bestDistance = distance;
+                double distanceToFire = Math.sqrt(dx * dx + dy * dy);
+                double distanceFromFireToBase = Math
+                        .sqrt((double) longitude * longitude + (double) latitude * latitude);
+                double roundTripDistance = distanceToFire + distanceFromFireToBase;
+
+                if (drone.batteryRange < roundTripDistance) {
+                    continue; // Not enough battery for round trip
+                }
+
+                if (distanceToFire < bestDistance) {
+                    bestDistance = distanceToFire;
                     bestDrone = drone;
                 }
             }
@@ -469,7 +488,7 @@ public class Scheduler {
      */
     private boolean canReassignFrom(String assignedFireKey, Intensity newFirePriority) {
         // Look up the assigned fire's intensity from the tracker
-        EventInfo assignedFire = fireTracker.getFiresBeingFought().get(assignedFireKey);
+        EventInfo assignedFire = fireTracker.getFire(assignedFireKey);
         if (assignedFire == null) {
             return false;
         }
@@ -484,7 +503,7 @@ public class Scheduler {
      * @param locationKey The location key of the assigned fire
      */
     private void handleFaultIfPresent(int droneId, String locationKey) {
-        EventInfo assignedFire = fireTracker.getFiresBeingFought().get(locationKey);
+        EventInfo assignedFire = fireTracker.getFire(locationKey);
         if (assignedFire == null) {
             return;
         }
@@ -498,17 +517,7 @@ public class Scheduler {
         faultMessage.setData("faultType", assignedFire.faultType.toString());
         sendMessage(faultMessage, DroneSubsystem.DRONE_SUBSYSTEM_PORT);
 
-        gui.printMessage("Fault detected (" + assignedFire.faultType + ") for drone " + droneId
-                + ". Requeuing fire at (" + locationKey + ").");
-        assignedFire.markFaultHandled();
-        gui.printMessage("Fault marked handled for fire at (" + locationKey + ").");
-        fireTracker.requeueFire(locationKey);
-
-        // Clear drone's assignment since fire was requeued
-        DroneStatus drone = droneStatusMap.get(droneId);
-        if (drone != null) {
-            drone.assignedFireKey = null;
-        }
+        gui.printMessage("Fault detected (" + assignedFire.faultType + ") for drone " + droneId);
     }
 
     /**
@@ -623,11 +632,13 @@ public class Scheduler {
         gui.printMessage("===== METRICS =====");
 
         if (completedCount > 0) {
-            gui.printMessage("Avg Response Time: " + String.format("%.4f",(totalResponse / (double)completedCount)) + " ms");
-            gui.printMessage("Max Response Time: " + String.format("%.4f",(double)maxResponse) + " ms");
+            gui.printMessage(
+                    "Avg Response Time: " + String.format("%.4f", (totalResponse / (double) completedCount)) + " ms");
+            gui.printMessage("Max Response Time: " + String.format("%.4f", (double) maxResponse) + " ms");
 
-            gui.printMessage("Avg Completion Time: " + String.format("%.4f",(totalCompletion / (double)completedCount)) + " ms");
-            gui.printMessage("Max Completion Time: " + String.format("%.4f",(double)maxCompletion) + " ms");
+            gui.printMessage("Avg Completion Time: "
+                    + String.format("%.4f", (totalCompletion / (double) completedCount)) + " ms");
+            gui.printMessage("Max Completion Time: " + String.format("%.4f", (double) maxCompletion) + " ms");
         }
 
         long totalSimTime = System.currentTimeMillis() - simulationStartTime;
@@ -636,12 +647,12 @@ public class Scheduler {
             long busy = droneTotalBusyTime.get(droneId);
             double utilization = (busy * 100.0) / totalSimTime;
 
-            gui.printMessage("Drone " + droneId + " Utilization: " + String.format("%.4f",utilization) + "%");
+            gui.printMessage("Drone " + droneId + " Utilization: " + String.format("%.4f", utilization) + "%");
         }
 
         double avgQueue = totalQueueTime / (double) totalSimTime;
 
-        gui.printMessage("Average Queue Length: " + String.format("%.4f",avgQueue));
+        gui.printMessage("Average Queue Length: " + String.format("%.4f", avgQueue));
         gui.printMessage("Max Queue Length: " + maxQueueLength);
     }
 }

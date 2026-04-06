@@ -24,16 +24,38 @@ public class SchedulerTest {
     @BeforeEach
     public void setup() throws Exception {
         mockGui = new SchedulerGUI() {
-            @Override public void printMessage(String msg) {}
-            @Override public void setZoneMap(HashMap<Integer, Zone> map) {}
-            @Override public void setStandardTime(StandardizedTime t) {}
-            @Override public void addFireEvent(String key, int lon, int lat, Intensity intensity, LocalTime time, int remainingAgent) {}
-            @Override public void updateFireEvent(String key, int remainingAgent) {}
-            @Override public void extinguishFireEvent(String key) {}
-            @Override public void updateDronePositions(String droneData) {}
+            @Override
+            public void printMessage(String msg) {
+            }
+
+            @Override
+            public void setZoneMap(HashMap<Integer, Zone> map) {
+            }
+
+            @Override
+            public void setStandardTime(StandardizedTime t) {
+            }
+
+            @Override
+            public void addFireEvent(String key, int lon, int lat, Intensity intensity, LocalTime time,
+                    int remainingAgent) {
+            }
+
+            @Override
+            public void updateFireEvent(String key, int remainingAgent) {
+            }
+
+            @Override
+            public void extinguishFireEvent(String key) {
+            }
+
+            @Override
+            public void updateDronePositions(String droneData) {
+            }
         };
 
-        Constructor<Scheduler> ctor = Scheduler.class.getDeclaredConstructor(int.class, SchedulerGUI.class, boolean.class);
+        Constructor<Scheduler> ctor = Scheduler.class.getDeclaredConstructor(int.class, SchedulerGUI.class,
+                boolean.class);
         ctor.setAccessible(true);
         scheduler = ctor.newInstance(1, mockGui, true);
     }
@@ -53,7 +75,7 @@ public class SchedulerTest {
     @Test
     public void testNewFireDetected() throws Exception {
         EventInfo fire = new EventInfo(10, 20, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now(), FaultType.NONE);
-        callMethod("newFireDetected", new Class[]{EventInfo.class}, fire);
+        callMethod("newFireDetected", new Class[] { EventInfo.class }, fire);
 
         @SuppressWarnings("unchecked")
         HashMap<String, ?> eventMetricsMap = (HashMap<String, ?>) getField("eventMetricsMap");
@@ -62,8 +84,8 @@ public class SchedulerTest {
 
     @Test
     public void testParseDroneStatus() throws Exception {
-        String droneData = "1:100:200:IDLE:NONE:5;2:150:250:TRAVELING_TO_FIRE:NONE:3";
-        callMethod("parseDroneStatus", new Class[]{String.class}, droneData);
+        String droneData = "1:100:200:IDLE:NONE:5:10000;2:150:250:TRAVELING_TO_FIRE:NONE:3:8000";
+        callMethod("parseDroneStatus", new Class[] { String.class }, droneData);
 
         @SuppressWarnings("unchecked")
         HashMap<Integer, ?> droneStatusMap = (HashMap<Integer, ?>) getField("droneStatusMap");
@@ -72,18 +94,21 @@ public class SchedulerTest {
 
     @Test
     public void testSelectBestDrone() throws Exception {
-        callMethod("parseDroneStatus", new Class[]{String.class}, "1:10:10:IDLE:NONE:5");
+        callMethod("parseDroneStatus", new Class[] { String.class }, "1:10:10:IDLE:NONE:5:10000");
 
-        EventInfo fire = new EventInfo(12, 12, Intensity.MODERATE, EventType.FIRE_DETECTED, LocalTime.now(), FaultType.NONE);
-        callMethod("newFireDetected", new Class[]{EventInfo.class}, fire);
+        EventInfo fire = new EventInfo(12, 12, Intensity.MODERATE, EventType.FIRE_DETECTED, LocalTime.now(),
+                FaultType.NONE);
+        callMethod("newFireDetected", new Class[] { EventInfo.class }, fire);
 
-        Object drone = callMethod("selectBestDrone", new Class[]{int.class, int.class, Intensity.class}, 12, 12, Intensity.MODERATE);
+        Object drone = callMethod("selectBestDrone", new Class[] { int.class, int.class, Intensity.class }, 12, 12,
+                Intensity.MODERATE);
         assertNotNull(drone);
     }
 
     @Test
     public void testCanReassignFrom() throws Exception {
-        EventInfo oldFire = new EventInfo(10, 10, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now(), FaultType.NONE);
+        EventInfo oldFire = new EventInfo(10, 10, Intensity.LOW, EventType.FIRE_DETECTED, LocalTime.now(),
+                FaultType.NONE);
 
         Object fireTracker = getField("fireTracker");
 
@@ -94,7 +119,7 @@ public class SchedulerTest {
 
         firesBeingFought.put(oldFire.getLocationKey(), oldFire);
 
-        boolean result = (boolean) callMethod("canReassignFrom", new Class[]{String.class, Intensity.class},
+        boolean result = (boolean) callMethod("canReassignFrom", new Class[] { String.class, Intensity.class },
                 oldFire.getLocationKey(), Intensity.HIGH);
 
         assertTrue(result);
@@ -103,7 +128,7 @@ public class SchedulerTest {
     @Test
     public void testParseZoneString() throws Exception {
         String zoneStr = "1:0,0,10,10-2:5,5,15,15";
-        callMethod("parseZoneString", new Class[]{String.class}, zoneStr);
+        callMethod("parseZoneString", new Class[] { String.class }, zoneStr);
 
         @SuppressWarnings("unchecked")
         HashMap<Integer, ?> zoneMap = (HashMap<Integer, ?>) getField("zoneMap");

@@ -32,7 +32,7 @@ public class DroneSubsystem {
      * @param gui            The GUI for printing status messages
      */
     public DroneSubsystem(int totalDrones, int agentCapacity, int speed, int acceleration, int deployRate,
-            int openNozzleTime, DroneSubsystemGUI gui) {
+            int openNozzleTime, int batteryRange, DroneSubsystemGUI gui) {
         this.gui = gui;
         try {
             this.socket = new DatagramSocket(DRONE_SUBSYSTEM_PORT);
@@ -59,7 +59,7 @@ public class DroneSubsystem {
         }
 
         this.droneTracker = new LiveDroneTracker(totalDrones, agentCapacity, speed, acceleration, deployRate,
-                openNozzleTime, standardizedTime, messageText -> this.gui.printMessage(messageText));
+                openNozzleTime, batteryRange, standardizedTime, messageText -> this.gui.printMessage(messageText));
 
         gui.printMessage("DroneSubsystem connected to scheduler and ready.");
 
@@ -73,10 +73,10 @@ public class DroneSubsystem {
         this.readyToStart = true;
     }
 
-        /**
-         * Receives and processes a single UDP message.
-         * Silently ignores socket timeouts when no message is available.
-         */
+    /**
+     * Receives and processes a single UDP message.
+     * Silently ignores socket timeouts when no message is available.
+     */
     private void receiveUDPMessage() {
         DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
         try {
@@ -155,7 +155,7 @@ public class DroneSubsystem {
                         gui.printMessage("DRONE_FAULT for unknown drone " + droneId + ", ignoring.");
                         break;
                     }
-                    faultedDrone.applyFault(faultType);
+                    faultedDrone.setPendingFault(faultType);
                 } catch (Exception ex) {
                     gui.printMessage("Invalid DRONE_FAULT message: " + ex.getMessage());
                 }
@@ -233,7 +233,8 @@ public class DroneSubsystem {
                     .append(d.getAccurateLatitude()).append(":")
                     .append(d.getStateName()).append(":")
                     .append(d.getFaultName()).append(":")
-                    .append(d.getAvailableAgent());
+                    .append(d.getAvailableAgent()).append(":")
+                    .append((int) d.getExactRemainingBatteryRange());
         }
         Message status = new Message(MessageType.DRONE_STATUS);
         status.setData("droneData", sb.toString());

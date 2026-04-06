@@ -34,6 +34,16 @@ public class LiveFireTracker {
     }
 
     /**
+     * Retrieves a fire by its location key from the fires being fought.
+     *
+     * @param fireLocationKey The location key of the fire to retrieve
+     * @return The EventInfo for the fire, or null if not found
+     */
+    public EventInfo getFire(String fireLocationKey) {
+        return this.firesBeingFought.get(fireLocationKey);
+    }
+
+    /**
      * Updates the remaining agent for a fire being fought.
      *
      * @param fireLocationKey The location key of the fire

@@ -5,3 +5,4 @@ Time,Zone ID,Event type,Severity,Fault type
 00:00:40,4,FIRE_DETECTED,High,Nozzle_stuck
 00:00:50,5,DRONE_REQUEST,Low,PACKET_LOSS
 00:01:00,6,FIRE_DETECTED,Moderate,PACKET_LOSS
+00:01:10,1,FIRE_DETECTED,Low,

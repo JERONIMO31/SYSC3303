@@ -8,6 +8,7 @@ public class DroneSubsystemGUI extends JFrame {
     private static final int ACCELERATION = 5; // m/s^2
     private static final int DEPLOY_RATE = 2; // L/s
     private static final int OPEN_NOZZLE_TIME = 5; // seconds
+    private static final int BATTERY_RANGE = 10000; // meters
 
     private JTextArea textArea;
     private JButton startButton;
@@ -18,6 +19,7 @@ public class DroneSubsystemGUI extends JFrame {
     private JTextField accelerationField;
     private JTextField deployRateField;
     private JTextField openNozzleTimeField;
+    private JTextField batteryRangeField;
     private DroneSubsystem droneSubsystem;
     private Thread DroneSubsystemThread;
     private StandardizedTime standardTime;
@@ -108,8 +110,18 @@ public class DroneSubsystemGUI extends JFrame {
         openNozzleTimeField = new JTextField(String.valueOf(OPEN_NOZZLE_TIME), 20);
         textPanel.add(openNozzleTimeField, gbc);
 
-        gbc.gridx = 1;
+        gbc.gridx = 0;
         gbc.gridy = 7;
+        gbc.weightx = 0;
+        textPanel.add(new JLabel("Battery Range:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        batteryRangeField = new JTextField(String.valueOf(BATTERY_RANGE), 20);
+        textPanel.add(batteryRangeField, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 8;
         gbc.weightx = 0;
         startButton = new JButton("Start");
         startButton.addActionListener(e -> startSimulation());
@@ -138,13 +150,15 @@ public class DroneSubsystemGUI extends JFrame {
         String accelerationText = accelerationField.getText();
         String deployRateText = deployRateField.getText();
         String openNozzleTimeText = openNozzleTimeField.getText();
+        String batteryRangeText = batteryRangeField.getText();
 
         if (totalDronesText == null || totalDronesText.trim().isEmpty()
                 || agentCapacityText == null || agentCapacityText.trim().isEmpty()
                 || speedText == null || speedText.trim().isEmpty()
                 || accelerationText == null || accelerationText.trim().isEmpty()
                 || deployRateText == null || deployRateText.trim().isEmpty()
-                || openNozzleTimeText == null || openNozzleTimeText.trim().isEmpty()) {
+                || openNozzleTimeText == null || openNozzleTimeText.trim().isEmpty()
+                || batteryRangeText == null || batteryRangeText.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter values for all fields.", "Missing Input",
                     JOptionPane.ERROR_MESSAGE);
             return;
@@ -156,6 +170,7 @@ public class DroneSubsystemGUI extends JFrame {
         final int acceleration;
         final int deployRate;
         final int openNozzleTime;
+        final int batteryRange;
         try {
             totalDrones = Integer.parseInt(totalDronesText.trim());
             agentCapacity = Integer.parseInt(agentCapacityText.trim());
@@ -163,9 +178,10 @@ public class DroneSubsystemGUI extends JFrame {
             acceleration = Integer.parseInt(accelerationText.trim());
             deployRate = Integer.parseInt(deployRateText.trim());
             openNozzleTime = Integer.parseInt(openNozzleTimeText.trim());
+            batteryRange = Integer.parseInt(batteryRangeText.trim());
 
             if (totalDrones <= 0 || agentCapacity <= 0 || speed <= 0 || acceleration <= 0
-                    || deployRate <= 0 || openNozzleTime <= 0) {
+                    || deployRate <= 0 || openNozzleTime <= 0 || batteryRange <= 0) {
                 JOptionPane.showMessageDialog(this, "All values must be greater than 0.",
                         "Invalid Input",
                         JOptionPane.ERROR_MESSAGE);
@@ -187,11 +203,12 @@ public class DroneSubsystemGUI extends JFrame {
         printMessage("Acceleration: " + acceleration);
         printMessage("Deploy Rate: " + deployRate);
         printMessage("Open Nozzle Time: " + openNozzleTime);
+        printMessage("Battery Range: " + batteryRange);
 
         DroneSubsystemThread = new Thread(() -> {
             try {
                 droneSubsystem = new DroneSubsystem(totalDrones, agentCapacity, speed, acceleration, deployRate,
-                        openNozzleTime, this);
+                        openNozzleTime, batteryRange, this);
                 printMessage("DroneSubsystem initialized.");
                 droneSubsystem.mainLoop();
             } catch (Exception e) {
@@ -233,6 +250,7 @@ public class DroneSubsystemGUI extends JFrame {
         accelerationField.setEnabled(enabled);
         deployRateField.setEnabled(enabled);
         openNozzleTimeField.setEnabled(enabled);
+        batteryRangeField.setEnabled(enabled);
     }
 
     /**

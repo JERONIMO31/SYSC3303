@@ -81,15 +81,15 @@ class DroneInfoTest {
         stubTime = new StubTime(LocalTime.of(12, 0));
 
         drone = new DroneInfo(
-                1,   // droneId
+                1, // droneId
                 100, // agentCapacity
-                10,  // speed
-                2,   // acceleration
-                5,   // deployRate
-                3,   // openNozzleTime
+                10, // speed
+                2, // acceleration
+                5, // deployRate
+                3, // openNozzleTime
+                10000, // batteryRange
                 stubTime,
-                logMessages::add
-        );
+                logMessages::add);
 
         stubFire = new StubFire(10, 20, 50); // latitude, longitude, requiredAgent
     }

@@ -297,14 +297,16 @@ public class SchedulerGUI extends JFrame {
         String state;
         String fault;
         int agent;
+        int batteryRange;
 
-        DroneMarker(int id, int longitude, int latitude, String state, String fault, int agent) {
+        DroneMarker(int id, int longitude, int latitude, String state, String fault, int agent, int batteryRange) {
             this.id = id;
             this.longitude = longitude;
             this.latitude = latitude;
             this.state = state;
             this.fault = fault;
             this.agent = agent;
+            this.batteryRange = batteryRange;
         }
     }
 
@@ -318,7 +320,7 @@ public class SchedulerGUI extends JFrame {
         private volatile DroneMarker[] droneMarkers = new DroneMarker[0];
         private BufferedImage fireImage;
 
-        private static final int DRONE_SIZE = 12;
+        private static final int DRONE_SIZE = 15;
         private static final int GRID_SPACING = 10;
         private static final int FIRE_MARKER_SIZE = 20;
         private static final int DRONE_BAY_WIDTH = 150;
@@ -372,8 +374,10 @@ public class SchedulerGUI extends JFrame {
                 g2.drawString(drone.fault, labelX, labelY + dLineHeight * 2);
                 g2.setColor(Color.BLACK);
                 g2.drawString("Agent: " + drone.agent, labelX, labelY + dLineHeight * 3);
+                g2.drawString("Battery: " + drone.batteryRange + "m", labelX, labelY + dLineHeight * 4);
             } else {
                 g2.drawString("Agent: " + drone.agent, labelX, labelY + dLineHeight * 2);
+                g2.drawString("Battery: " + drone.batteryRange + "m", labelX, labelY + dLineHeight * 3);
             }
         }
 
@@ -500,7 +504,7 @@ public class SchedulerGUI extends JFrame {
          * Updates all drone markers from a status data string.
          *
          * @param droneData The drone data string in format
-         *                  "id:lon:lat:state:fault:agent;..."
+         *                  "id:lon:lat:state:fault:agent:batteryRange;..."
          */
         public void updateDrones(String droneData) {
             if (droneData == null || droneData.isEmpty())
@@ -515,7 +519,8 @@ public class SchedulerGUI extends JFrame {
                         Integer.parseInt(parts[2]),
                         parts[3],
                         parts[4],
-                        Integer.parseInt(parts[5]));
+                        Integer.parseInt(parts[5]),
+                        Integer.parseInt(parts[6]));
             }
             this.droneMarkers = markers;
             repaint();

@@ -5,7 +5,6 @@ import java.lang.reflect.Method;
 import utils.StandardizedTime;
 import java.time.LocalTime;
 
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class FireIncidentGUITest {
@@ -16,7 +15,7 @@ class FireIncidentGUITest {
     void setUp() {
         gui = new FireIncidentGUI();
 
-        gui.setStandardTime(new StandardizedTime(LocalTime.of(0,0,0), 1));
+        gui.setStandardTime(new StandardizedTime(LocalTime.of(0, 0, 0), 1));
     }
 
     @AfterEach
@@ -38,7 +37,8 @@ class FireIncidentGUITest {
         JTextArea textArea = getPrivateField(gui, "textArea", JTextArea.class);
 
         gui.printMessage("Hello World");
-        SwingUtilities.invokeAndWait(() -> {});
+        SwingUtilities.invokeAndWait(() -> {
+        });
         assertTrue(textArea.getText().contains("Hello World"));
     }
 
@@ -67,7 +67,8 @@ class FireIncidentGUITest {
         JButton startButton = getPrivateField(gui, "startButton", JButton.class);
         JButton stopButton = getPrivateField(gui, "stopButton", JButton.class);
 
-        Thread dummyThread = new Thread(() -> {});
+        Thread dummyThread = new Thread(() -> {
+        });
         setPrivateField(gui, "fireIncidentThread", dummyThread);
         setPrivateField(gui, "fireIncident", null);
         Method stopMethod = FireIncidentGUI.class.getDeclaredMethod("stopSimulation");

@@ -21,10 +21,12 @@ class LiveDroneTrackerTest {
         int acceleration = 2;
         int deployRate = 5;
         int openNozzleTime = 3;
+        int batteryRange = 10000;
 
         StandardizedTime time = new StandardizedTime(LocalTime.now(), 1);
 
-        Consumer<String> logger = msg -> {};
+        Consumer<String> logger = msg -> {
+        };
 
         tracker = new LiveDroneTracker(
                 totalDrones,
@@ -33,9 +35,9 @@ class LiveDroneTrackerTest {
                 acceleration,
                 deployRate,
                 openNozzleTime,
+                batteryRange,
                 time,
-                logger
-        );
+                logger);
     }
 
     @Test

@@ -23,11 +23,14 @@ public class DroneInfo {
     private int acceleration; // m/s^2
     private int deploy_rate; // L/s
     private int open_nozzle_time; // seconds
+    private int battery_range; // meters
+    private double remainingBatteryRange; // meters remaining
     private StandardizedTime standardizedTime;
     private Consumer<String> logger;
     private State currentState = State.IDLE;
     private LocalTime stateExpiration = null; // Time when the current state will expire
     private FaultType currentFault = FaultType.NONE;
+    private FaultType pendingFault = FaultType.NONE; // For faults that occur during travel and take effect upon arrival
 
     /**
      * Constructs a new DroneInfo with the specified drone ID and parameters.
@@ -44,13 +47,15 @@ public class DroneInfo {
      * @param logger           Optional logger callback for state/action messages
      */
     public DroneInfo(int droneId, int agentCapacity, int speed, int acceleration, int deployRate, int openNozzleTime,
-            StandardizedTime standardizedTime, Consumer<String> logger) {
+            int batteryRange, StandardizedTime standardizedTime, Consumer<String> logger) {
         this.droneId = droneId;
         this.agent_capacity = agentCapacity;
         this.speed = speed;
         this.acceleration = acceleration;
         this.deploy_rate = deployRate;
         this.open_nozzle_time = openNozzleTime;
+        this.battery_range = batteryRange;
+        this.remainingBatteryRange = battery_range;
         this.standardizedTime = standardizedTime;
         this.logger = logger;
         this.availableAgent = agent_capacity;
@@ -99,8 +104,15 @@ public class DroneInfo {
             return;
         }
 
+        if (pendingFault != FaultType.NONE) {
+            pendingFault = FaultType.NONE; // Clear pending fault since we're assigning to a new fire
+        }
+
+        int oldLon = this.longitude;
+        int oldLat = this.latitude;
         this.longitude = getAccurateLongitude();
         this.latitude = getAccurateLatitude();
+        this.remainingBatteryRange -= calculateDistance(oldLon, oldLat, this.longitude, this.latitude);
         if (this.assignedFire != null && this.assignedFire != fire) {
             log("Drone " + this.droneId + " reassigned from fire (" + this.assignedFire.getLocationKey() + ").");
             this.assignedFire.assignDrone(null);
@@ -109,7 +121,8 @@ public class DroneInfo {
         fire.assignDrone(this.droneId);
         this.currentState = State.TRAVELING_TO_FIRE;
         this.stateExpiration = getCurrentTime().plusSeconds(getTravelTime());
-        log("Drone " + this.droneId + " assigned to fire (" + fire.getLocationKey() + "), traveling to fire.");
+        log("Drone " + this.droneId + " assigned to fire (" + fire.getLocationKey()
+                + "), traveling to fire. Battery range remaining: " + (int) this.remainingBatteryRange + "m.");
     }
 
     /**
@@ -315,6 +328,19 @@ public class DroneInfo {
     }
 
     /**
+     * Calculates the Euclidean distance between two points.
+     *
+     * @param fromLon The starting longitude
+     * @param fromLat The starting latitude
+     * @param toLon   The destination longitude
+     * @param toLat   The destination latitude
+     * @return The distance in meters
+     */
+    private double calculateDistance(int fromLon, int fromLat, int toLon, int toLat) {
+        return Math.sqrt(Math.pow(toLat - fromLat, 2) + Math.pow(toLon - fromLon, 2));
+    }
+
+    /**
      * Gets the current simulation time.
      * Falls back to real time if standardized time is not set.
      *
@@ -335,15 +361,34 @@ public class DroneInfo {
      * @return The fire event if agent was just deployed, null otherwise
      */
     public EventInfo checkStateTransition() {
+        if (getExactRemainingBatteryRange() <= 0 && currentState != State.IDLE
+                && currentState != State.OUT_OF_COMMISSION) {
+            log("Drone " + this.droneId + " battery depleted mid-flight. Returning to base.");
+            unassignFire();
+            this.remainingBatteryRange = 0;
+            setLocation(0, 0);
+            this.currentFault = FaultType.DEAD_BATTERY;
+            this.pendingFault = FaultType.NONE;
+            this.currentState = State.OUT_OF_COMMISSION;
+            this.stateExpiration = null;
+            return null;
+        }
+
         if (stateExpiration != null && !getCurrentTime().isBefore(stateExpiration)) {
             switch (currentState) {
                 case TRAVELING_TO_FIRE:
+                    if (pendingFault != FaultType.NONE) {
+                        applyFault();
+                        return null;
+                    }
                     currentState = State.EXTINGUISHING;
                     if (assignedFire == null) {
                         currentState = State.IDLE;
                         stateExpiration = null;
                         return null;
                     }
+                    this.remainingBatteryRange -= calculateDistance(this.longitude, this.latitude,
+                            assignedFire.longitude, assignedFire.latitude);
                     setLocation(assignedFire.longitude, assignedFire.latitude);
                     int deployAmount = Math.min(this.getAgentLevel(), this.assignedFire.getRemainingAgentRequired());
                     stateExpiration = getCurrentTime()
@@ -365,8 +410,10 @@ public class DroneInfo {
                     log("Drone " + this.droneId + " returning to base.");
                     return fire; // Return the fire that was just extinguished
                 case TRAVELING_HOME:
+                    this.remainingBatteryRange -= calculateDistance(this.longitude, this.latitude, 0, 0);
                     setLocation(0, 0);
                     refillAgent();
+                    this.remainingBatteryRange = battery_range;
                     if (currentFault != FaultType.NONE) {
                         if (currentFault.isHardFault()) {
                             currentState = State.OUT_OF_COMMISSION;
@@ -404,22 +451,32 @@ public class DroneInfo {
      * Applies a fault to this drone, causing it to return to base.
      * Hard faults permanently decommission the drone; soft faults
      * cause temporary downtime.
-     *
-     * @param faultType The type of fault to apply
      */
-    public void applyFault(FaultType faultType) {
+    public void applyFault() {
 
+        if (this.pendingFault == FaultType.NONE) {
+            return; // No pending fault to apply
+        }
+
+        int oldLon = this.longitude;
+        int oldLat = this.latitude;
         this.longitude = getAccurateLongitude();
         this.latitude = getAccurateLatitude();
+        this.remainingBatteryRange -= calculateDistance(oldLon, oldLat, this.longitude, this.latitude);
         unassignFire();
 
-        this.currentFault = faultType;
+        this.currentFault = this.pendingFault;
+        this.pendingFault = FaultType.NONE;
 
         int travelHomeTime = calculateTravelTimeTo(0, 0);
         this.currentState = State.TRAVELING_HOME;
         this.stateExpiration = getCurrentTime().plusSeconds(travelHomeTime);
-        log("Drone " + this.droneId + " returning to base due to " + (faultType.isHardFault() ? "HARD" : "SOFT")
+        log("Drone " + this.droneId + " returning to base due to " + (currentFault.isHardFault() ? "HARD" : "SOFT")
                 + " fault.");
+    }
+
+    public void setPendingFault(FaultType fault) {
+        this.pendingFault = fault;
     }
 
     /**
@@ -456,6 +513,31 @@ public class DroneInfo {
      */
     public int getAvailableAgent() {
         return this.availableAgent;
+    }
+
+    /**
+     * Gets the remaining battery range in meters.
+     *
+     * @return The remaining battery range
+     */
+    public double getRemainingBatteryRange() {
+        return this.remainingBatteryRange;
+    }
+
+    /**
+     * Gets the exact remaining battery range accounting for distance
+     * already traveled mid-flight. Subtracts the distance from the
+     * stored origin to the current interpolated position.
+     *
+     * @return The exact remaining battery range in meters
+     */
+    public double getExactRemainingBatteryRange() {
+        if (currentState == State.TRAVELING_TO_FIRE || currentState == State.TRAVELING_HOME) {
+            double distanceTraveled = calculateDistance(this.longitude, this.latitude,
+                    getAccurateLongitude(), getAccurateLatitude());
+            return Math.max(0, this.remainingBatteryRange - distanceTraveled);
+        }
+        return Math.max(0, this.remainingBatteryRange);
     }
 
     /**

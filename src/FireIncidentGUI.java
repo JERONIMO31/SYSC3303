@@ -94,7 +94,6 @@ public class FireIncidentGUI extends JFrame {
         stopButton.addActionListener(e -> stopSimulation());
         textPanel.add(stopButton, gbc);
 
-        // add(new GridWithLegend(""));
         add(textPanel);
 
         pack();
