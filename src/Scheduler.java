@@ -363,6 +363,8 @@ public class Scheduler {
         for (String entry : entries) {
             String[] parts = entry.split(":");
             int id = Integer.parseInt(parts[0]);
+            // Ensure all known drones appear in utilization metrics, even if never assigned.
+            droneTotalBusyTime.putIfAbsent(id, 0L);
             DroneStatus status = new DroneStatus(
                     id,
                     Integer.parseInt(parts[1]),
@@ -648,9 +650,13 @@ public class Scheduler {
         }
 
         long totalSimTime = System.currentTimeMillis() - simulationStartTime;
+        HashSet<Integer> droneIds = new HashSet<>(droneTotalBusyTime.keySet());
+        droneIds.addAll(droneStatusMap.keySet());
+        ArrayList<Integer> orderedDroneIds = new ArrayList<>(droneIds);
+        orderedDroneIds.sort(Integer::compareTo);
 
-        for (int droneId : droneTotalBusyTime.keySet()) {
-            long busy = droneTotalBusyTime.get(droneId);
+        for (int droneId : orderedDroneIds) {
+            long busy = droneTotalBusyTime.getOrDefault(droneId, 0L);
             double utilization = (busy * 100.0) / totalSimTime;
 
             gui.printMessage("Drone " + droneId + " Utilization: " + String.format("%.4f", utilization) + "%");
