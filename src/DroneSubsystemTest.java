@@ -51,8 +51,7 @@ public class DroneSubsystemTest {
         FaultType lastFaultApplied;
 
         public TestDrone(int id) {
-            super(id, 1, 1, 1, 1, 1, null, msg -> {});
-        }
+            super(id, 1, 1, 1, 1, 1, 1000, new StandardizedTime(LocalTime.now(), 1), msg -> {});        }
 
         @Override
         public void assignToFire(EventInfo fire) {
@@ -60,17 +59,17 @@ public class DroneSubsystemTest {
         }
 
         @Override
-        public void applyFault(FaultType fault) {
+        public void setPendingFault(FaultType fault) {
             lastFaultApplied = fault;
         }
+
     }
 
     static class TestTracker extends LiveDroneTracker {
         TestDrone drone;
 
         public TestTracker(TestDrone d) {
-            super(1, 1, 1, 1, 1, 1, null, msg -> {});
-            this.drone = d;
+            super(1, 1, 1, 1, 1, 1, 1000, new StandardizedTime(LocalTime.now(), 1), msg -> {});            this.drone = d;
         }
 
         @Override

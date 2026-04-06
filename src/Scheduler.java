@@ -371,12 +371,24 @@ public class Scheduler {
                     parts[4],
                     Integer.parseInt(parts[5]),
                     Integer.parseInt(parts[6]));
-            // Preserve assigned fire key from previous status
+
             DroneStatus prev = droneStatusMap.get(id);
             if (prev != null && prev.assignedFireKey != null) {
                 if (status.state.equals("TRAVELING_TO_FIRE") || status.state.equals("EXTINGUISHING")) {
+                    // Preserve the fire assignment
                     status.assignedFireKey = prev.assignedFireKey;
+
+                    // Record first arrival when drone transitions into EXTINGUISHING
+                    boolean justArrived = !prev.state.equals("EXTINGUISHING")
+                            && status.state.equals("EXTINGUISHING");
+                    if (justArrived) {
+                        EventMetrics em = eventMetricsMap.get(prev.assignedFireKey);
+                        if (em != null && em.firstResponseTime == -1) {
+                            em.firstResponseTime = System.currentTimeMillis();
+                        }
+                    }
                 } else if (!"NONE".equals(status.fault)) {
+                    // Drone faulted, requeue fire
                     gui.printMessage("Drone " + id + " has fault (" + status.fault
                             + ") and is no longer extinguishing fire at (" + prev.assignedFireKey
                             + "). The fire has been requeued if it was still active.");
@@ -387,6 +399,7 @@ public class Scheduler {
                         gui.printMessage("Fault marked handled for fire at (" + prev.assignedFireKey + ").");
                     }
                 } else {
+                    // Drone left its fire for another reason, requeue
                     fireTracker.requeueFire(prev.assignedFireKey);
                     gui.printMessage("Drone " + id + " is no longer extinguishing fire at (" + prev.assignedFireKey
                             + ") and has been requeued if it was still active.");
@@ -566,13 +579,6 @@ public class Scheduler {
                 if (bestDrone != null) {
                     String previousFire = bestDrone.assignedFireKey;
                     bestDrone.assignedFireKey = nextFire.getLocationKey();
-
-                    String fireKey = nextFire.getLocationKey();
-
-                    EventMetrics em = eventMetricsMap.get(fireKey);
-                    if (em != null && em.firstResponseTime == -1) {
-                        em.firstResponseTime = System.currentTimeMillis();
-                    }
 
                     droneBusyStart.put(bestDrone.id, System.currentTimeMillis());
 

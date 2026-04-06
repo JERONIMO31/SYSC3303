@@ -140,7 +140,8 @@ class DroneInfoTest {
     @Test
     void testApplyFault() {
         drone.assignToFire(stubFire);
-        drone.applyFault(FaultType.DRONE_STUCK);
+        drone.setPendingFault(FaultType.DRONE_STUCK);
+        drone.applyFault();
         assertEquals("TRAVELING_HOME", drone.getStateName());
         assertEquals(FaultType.DRONE_STUCK.name(), drone.getFaultName());
         assertNull(drone.getAssignedFire());
@@ -149,7 +150,8 @@ class DroneInfoTest {
 
     @Test
     void testAssignToFireWhenOutOfCommission() {
-        drone.applyFault(FaultType.NOZZLE_STUCK);
+        drone.setPendingFault(FaultType.DRONE_STUCK);
+        drone.applyFault();
         drone.assignToFire(stubFire);
         assertNull(drone.getAssignedFire());
         assertTrue(logMessages.stream().anyMatch(s -> s.contains("out of commission")));
