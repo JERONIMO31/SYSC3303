@@ -28,6 +28,9 @@ public class FireIncident {
     private FireIncidentGUI gui;
     private DatagramSocket socket;
     private boolean readyToStart = false;
+    private int totalFireEvents = 0;
+    private int extinguishedFireCount = 0;
+    private volatile boolean endRequested = false;
 
     /**
      * Constructs a new FireIncident thread.
@@ -117,6 +120,8 @@ public class FireIncident {
             case FIRE_EXTINGUISHED:
                 String locationKey = message.getData("locationKey");
                 gui.printMessage("Fire at " + locationKey + " has been extinguished.");
+                extinguishedFireCount++;
+                requestShutdownIfComplete();
                 break;
             default:
                 gui.printMessage("Unknown message type: " + message.type);
@@ -138,6 +143,34 @@ public class FireIncident {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Checks whether all fires have been extinguished and, if so, requests
+     * shutdown for all subsystems.
+     */
+    private void requestShutdownIfComplete() {
+        if (endRequested) {
+            return;
+        }
+        if (totalFireEvents <= 0) {
+            return;
+        }
+        if (extinguishedFireCount < totalFireEvents) {
+            return;
+        }
+
+        endRequested = true;
+        gui.printMessage("All fires have been extinguished. Ending simulation.");
+
+        if (socket == null) {
+            return;
+        }
+
+        Message done = new Message(MessageType.SIMULATION_COMPLETE);
+        done.setData("sender", "FireIncident");
+        sendMessage(done, Scheduler.SCHEDULER_PORT);
+        sendMessage(done, DroneSubsystem.DRONE_SUBSYSTEM_PORT);
     }
 
     /**
@@ -169,6 +202,7 @@ public class FireIncident {
                     EventInfo eventInfo = new EventInfo(zone.latitude, zone.longitude, intensity, type, eventTime,
                             faultType);
                     eventMap.put(eventTime, eventInfo);
+                    totalFireEvents++;
                 } catch (Exception ex) {
                     gui.printMessage("ERROR: Skipping invalid event line: " + eventLine + " - " + ex.getMessage());
                 }
@@ -260,7 +294,7 @@ public class FireIncident {
      * Sets end condition when all events are processed and fires are out.
      */
     public void mainLoop() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !endRequested) {
             LocalTime currentTime = standardTime.getRelativeTime();
             if (!eventMap.isEmpty()) {
                 LocalTime nextEventTime = eventMap.firstKey();

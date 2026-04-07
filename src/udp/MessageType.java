@@ -10,7 +10,8 @@ public enum MessageType {
     ASSIGNMENT,
     AGENT_DEPLOYED,
     DRONE_FAULT,
-    DRONE_STATUS;
+    DRONE_STATUS,
+    SIMULATION_COMPLETE;
 
     /**
      * Converts a string to a MessageType enum value.

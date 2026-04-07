@@ -18,6 +18,7 @@ public class DroneSubsystem {
     private DroneSubsystemGUI gui;
     private StandardizedTime standardizedTime;
     private boolean readyToStart = false;
+    private volatile boolean stopRequested = false;
     public static final int DRONE_SUBSYSTEM_PORT = 3456;
 
     /**
@@ -160,6 +161,10 @@ public class DroneSubsystem {
                     gui.printMessage("Invalid DRONE_FAULT message: " + ex.getMessage());
                 }
                 break;
+            case SIMULATION_COMPLETE:
+                gui.printMessage("Simulation complete. DroneSubsystem will shut down.");
+                stopRequested = true;
+                break;
 
             default:
                 gui.printMessage("Unknown message type: " + message.type);
@@ -190,7 +195,7 @@ public class DroneSubsystem {
      */
     public void mainLoop() {
         LocalTime lastStatusTime = standardizedTime.getRelativeTime();
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !stopRequested) {
             receiveUDPMessage();
 
             for (DroneInfo drone : this.droneTracker.getAllDrones()) {
@@ -214,7 +219,7 @@ public class DroneSubsystem {
                 sendDroneStatus();
             }
         }
-        gui.printMessage("DroneSubsystem main loop has been interrupted and will exit.");
+        gui.printMessage("DroneSubsystem main loop is exiting.");
     }
 
     /**

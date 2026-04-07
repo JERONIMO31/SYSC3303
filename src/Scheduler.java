@@ -23,6 +23,7 @@ public class Scheduler {
     private DatagramSocket socket;
     private boolean fireIncidentConnected = false;
     private boolean droneSubsystemConnected = false;
+    private volatile boolean stopRequested = false;
     private StandardizedTime standardTime;
     private SchedulerGUI gui;
     private HashMap<Integer, Zone> zoneMap = new HashMap<>();
@@ -290,6 +291,10 @@ public class Scheduler {
                     parseDroneStatus(droneData);
                     gui.updateDronePositions(droneData);
                 }
+                break;
+            case SIMULATION_COMPLETE:
+                gui.printMessage("Simulation complete. Scheduler will shut down.");
+                stopRequested = true;
                 break;
             default:
                 gui.printMessage("Unknown message type: " + message.type);
@@ -560,7 +565,7 @@ public class Scheduler {
      * Continues until end condition is met.
      */
     public void mainLoop() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !stopRequested) {
             long now = System.currentTimeMillis();
 
             int queueSize = fireTracker.getPendingFireCount();
@@ -608,7 +613,7 @@ public class Scheduler {
                 }
             }
         }
-        gui.printMessage("Scheduler main loop has been interrupted and will exit.");
+        gui.printMessage("Scheduler main loop is exiting.");
         printMetrics();
     }
 
