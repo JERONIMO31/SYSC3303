@@ -3,6 +3,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.DatagramSocket;
 import java.time.LocalTime;
 import java.util.HashMap;
 
@@ -133,5 +134,46 @@ public class SchedulerTest {
         @SuppressWarnings("unchecked")
         HashMap<Integer, ?> zoneMap = (HashMap<Integer, ?>) getField("zoneMap");
         assertEquals(2, zoneMap.size());
+    }
+
+    @Test
+    public void testHandleFaultIfPresent() throws Exception {
+        Object fireTracker = getField("fireTracker");
+
+        EventInfo fire = new EventInfo(
+                50, 60,
+                Intensity.HIGH,
+                EventType.FIRE_DETECTED,
+                LocalTime.now(),
+                FaultType.DRONE_STUCK
+        );
+
+        String key = fire.getLocationKey();
+
+        Method putMethod = fireTracker.getClass().getDeclaredMethod("put", EventInfo.class);
+        putMethod.setAccessible(true);
+        putMethod.invoke(fireTracker, fire);
+
+        Method getFiresBeingFoughtMethod = fireTracker.getClass().getDeclaredMethod("getFiresBeingFought");
+        getFiresBeingFoughtMethod.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        HashMap<String, EventInfo> firesBeingFought =
+                (HashMap<String, EventInfo>) getFiresBeingFoughtMethod.invoke(fireTracker);
+
+        firesBeingFought.put(key, fire);
+
+        Field socketField = Scheduler.class.getDeclaredField("socket");
+        socketField.setAccessible(true);
+        socketField.set(scheduler, new DatagramSocket());
+
+        callMethod(
+                "handleFaultIfPresent",
+                new Class[]{int.class, String.class},
+                1,
+                key
+        );
+
+        assertFalse(fire.isFaultHandled(), "Fault should NOT be marked handled by Scheduler (DroneSubsystem handles it)");
     }
 }
