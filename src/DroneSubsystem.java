@@ -188,6 +188,15 @@ public class DroneSubsystem {
         }
     }
 
+    private boolean allDronesInBay() {
+        for (DroneInfo drone : droneTracker.getAllDrones()) {
+            if (!"IDLE".equals(drone.getStateName()) && !"OUT_OF_COMMISSION".equals(drone.getStateName())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Main execution loop for the drone subsystem.
      * Waits for fire assignments, travels to fires, deploys agent,
@@ -195,7 +204,7 @@ public class DroneSubsystem {
      */
     public void mainLoop() {
         LocalTime lastStatusTime = standardizedTime.getRelativeTime();
-        while (!Thread.currentThread().isInterrupted() && !stopRequested) {
+        while (!Thread.currentThread().isInterrupted() && (!stopRequested || !allDronesInBay())) {
             receiveUDPMessage();
 
             for (DroneInfo drone : this.droneTracker.getAllDrones()) {

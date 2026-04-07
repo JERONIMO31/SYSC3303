@@ -145,7 +145,7 @@ public class SchedulerGUI extends JFrame {
     /**
      * Stops the running scheduler simulation and resets the UI.
      */
-    private void stopSimulation() {
+    public void stopSimulation() {
         printMessage("Stopping scheduler...");
         if (schedulerThread != null && schedulerThread.isAlive()) {
             schedulerThread.interrupt();
@@ -156,7 +156,6 @@ public class SchedulerGUI extends JFrame {
             timeUpdateTimer.stop();
             timeUpdateTimer = null;
         }
-        timeDisplayLabel.setText("Simulation Time: 00:00");
         setButtonsEnabled(true);
         stopButton.setEnabled(false);
     }

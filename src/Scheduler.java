@@ -34,7 +34,7 @@ public class Scheduler {
     private HashMap<Integer, Long> droneBusyStart = new HashMap<>();
     private HashMap<Integer, Long> droneTotalBusyTime = new HashMap<>();
 
-    private long lastQueueCheckTime = System.currentTimeMillis();
+    private long lastQueueCheckTime = 0;
     private long totalQueueTime = 0;
     private int maxQueueLength = 0;
 
@@ -42,6 +42,15 @@ public class Scheduler {
         long creationTime;
         long firstResponseTime = -1;
         long completionTime = -1;
+    }
+
+    /**
+     * Returns the elapsed simulation time in milliseconds, scaled by the time scale
+     * factor.
+     */
+    private long getSimulationMillis() {
+        int scale = (standardTime != null) ? standardTime.getTimeScale() : 1;
+        return (System.currentTimeMillis() - simulationStartTime) * scale;
     }
 
     /**
@@ -54,7 +63,7 @@ public class Scheduler {
         if (start == null) {
             return;
         }
-        long duration = System.currentTimeMillis() - start;
+        long duration = getSimulationMillis() - start;
         droneTotalBusyTime.put(
                 droneId,
                 droneTotalBusyTime.getOrDefault(droneId, 0L) + duration);
@@ -277,7 +286,7 @@ public class Scheduler {
                     if (fireTracker.isExtinguished(deployedLocationKey)) {
                         EventMetrics em = eventMetricsMap.get(deployedLocationKey);
                         if (em != null) {
-                            em.completionTime = System.currentTimeMillis();
+                            em.completionTime = getSimulationMillis();
                         }
                         gui.printMessage("Fire at (" + deployedLocationKey + ") has been extinguished.");
                         fireTracker.markFireAsDead(deployedLocationKey);
@@ -353,7 +362,7 @@ public class Scheduler {
         String key = fire.getLocationKey();
 
         EventMetrics em = new EventMetrics();
-        em.creationTime = System.currentTimeMillis();
+        em.creationTime = getSimulationMillis();
         eventMetricsMap.put(key, em);
 
         gui.addFireEvent(
@@ -377,7 +386,8 @@ public class Scheduler {
         for (String entry : entries) {
             String[] parts = entry.split(":");
             int id = Integer.parseInt(parts[0]);
-            // Ensure all known drones appear in utilization metrics, even if never assigned.
+            // Ensure all known drones appear in utilization metrics, even if never
+            // assigned.
             droneTotalBusyTime.putIfAbsent(id, 0L);
             DroneStatus status = new DroneStatus(
                     id,
@@ -400,7 +410,7 @@ public class Scheduler {
                     if (justArrived) {
                         EventMetrics em = eventMetricsMap.get(prev.assignedFireKey);
                         if (em != null && em.firstResponseTime == -1) {
-                            em.firstResponseTime = System.currentTimeMillis();
+                            em.firstResponseTime = getSimulationMillis();
                         }
                     }
                 } else if (!"NONE".equals(status.fault)) {
@@ -569,14 +579,23 @@ public class Scheduler {
         }
     }
 
+    private boolean allDronesInBay() {
+        for (DroneStatus drone : droneStatusMap.values()) {
+            if (!"IDLE".equals(drone.state) && !"OUT_OF_COMMISSION".equals(drone.state)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Main execution loop for the scheduler.
      * Monitors fires, updates fire states, and assigns available drones to fires.
      * Continues until end condition is met.
      */
     public void mainLoop() {
-        while (!Thread.currentThread().isInterrupted() && !stopRequested) {
-            long now = System.currentTimeMillis();
+        while (!Thread.currentThread().isInterrupted() && (!stopRequested || !allDronesInBay())) {
+            long now = getSimulationMillis();
 
             int queueSize = fireTracker.getPendingFireCount();
 
@@ -597,7 +616,7 @@ public class Scheduler {
                     String previousFire = bestDrone.assignedFireKey;
                     bestDrone.assignedFireKey = nextFire.getLocationKey();
 
-                    droneBusyStart.put(bestDrone.id, System.currentTimeMillis());
+                    droneBusyStart.put(bestDrone.id, getSimulationMillis());
 
                     gui.printMessage("Assigning drone " + bestDrone.id + " to fire at (" + nextFire.getLocationKey()
                             + ") with intensity " + nextFire.intensity);
@@ -622,6 +641,9 @@ public class Scheduler {
                     }
                 }
             }
+        }
+        if (stopRequested) {
+            gui.stopSimulation();
         }
         gui.printMessage("Scheduler main loop is exiting.");
         printMetrics();
@@ -664,7 +686,7 @@ public class Scheduler {
             gui.printMessage("Max Completion Time: " + String.format("%.4f", (double) maxCompletion) + " ms");
         }
 
-        long totalSimTime = System.currentTimeMillis() - simulationStartTime;
+        long totalSimTime = getSimulationMillis();
         HashSet<Integer> droneIds = new HashSet<>(droneTotalBusyTime.keySet());
         droneIds.addAll(droneStatusMap.keySet());
         ArrayList<Integer> orderedDroneIds = new ArrayList<>(droneIds);
