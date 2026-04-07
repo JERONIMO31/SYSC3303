@@ -45,6 +45,22 @@ public class Scheduler {
     }
 
     /**
+     * Records busy time for a drone if a start time exists, then clears it.
+     *
+     * @param droneId The drone ID to record busy time for
+     */
+    private void recordDroneBusyTime(int droneId) {
+        Long start = droneBusyStart.remove(droneId);
+        if (start == null) {
+            return;
+        }
+        long duration = System.currentTimeMillis() - start;
+        droneTotalBusyTime.put(
+                droneId,
+                droneTotalBusyTime.getOrDefault(droneId, 0L) + duration);
+    }
+
+    /**
      * Tracks the status of a drone as reported by the DroneSubsystem.
      */
     private static class DroneStatus {
@@ -250,14 +266,7 @@ public class Scheduler {
                     fireTracker.deployAgent(deployedLocationKey, remainingAgent);
                     gui.updateFireEvent(deployedLocationKey, remainingAgent);
 
-                    Long start = droneBusyStart.get(deployedDroneId);
-                    if (start != null) {
-                        long duration = System.currentTimeMillis() - start;
-
-                        droneTotalBusyTime.put(
-                                deployedDroneId,
-                                droneTotalBusyTime.getOrDefault(deployedDroneId, 0L) + duration);
-                    }
+                    recordDroneBusyTime(deployedDroneId);
 
                     // Clear drone's assignment since it finished deploying
                     DroneStatus deployedDrone = droneStatusMap.get(deployedDroneId);
@@ -395,6 +404,7 @@ public class Scheduler {
                         }
                     }
                 } else if (!"NONE".equals(status.fault)) {
+                    recordDroneBusyTime(id);
                     // Drone faulted, requeue fire
                     gui.printMessage("Drone " + id + " has fault (" + status.fault
                             + ") and is no longer extinguishing fire at (" + prev.assignedFireKey
